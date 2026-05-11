@@ -453,6 +453,19 @@ window.saveP=async function(){
   toast(editP?'商品已更新':'商品已创建');closePM();await lProd();document.getElementById('mc').innerHTML=rProd();bProd();
 };
 
+/* ============ IMPORT MODAL + Excel template download ============ */
+function rImpM(){
+  return '<div class="mo" id="impModal" style="display:none" onclick="if(event.target===this)hideImpM()"><div class="mb" style="max-width:600px">'+
+    '<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">批量导入商品</h3><button onclick="hideImpM()" class="text-2xl text-gray-400">&times;</button></div>'+
+    '<div class="space-y-4">'+
+    '<p class="text-sm text-gray-500">选择 Excel 文件导入商品数据。请先下载模板填写。</p>'+
+    '<div><label class="fl">选择Excel文件</label><input type="file" id="impFile" accept=".xlsx,.xls" class="fi"></div>'+
+    '<div><label class="fl">重复商品处理方式</label><select id="dupMode" class="fi"><option value="skip">跳过重复</option><option value="update">更新已存在</option><option value="add_all">全部新增</option></select></div>'+
+    '<div class="flex justify-end gap-3 pt-4 border-t"><button onclick="hideImpM()" class="bs">取消</button><button onclick="doImport()" class="bp">开始导入</button></div>'+
+    '</div></div></div>';
+}
+window.showImpM=function(){const m=document.getElementById('impModal');if(m)m.style.display='flex';else location.reload()};
+window.hideImpM=function(){const m=document.getElementById('impModal');if(m)m.style.display='none'};
 /* ============ IMPORT continued + Excel template download ============ */
 window.dlTemplate=function(){
   const wb=XLSX.utils.book_new();
