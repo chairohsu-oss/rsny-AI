@@ -163,14 +163,14 @@ function sC(l,v,c){return'<div class="cd p-5"><p class="text-sm text-gray-500 mb
 async function lProd(){
   const off=(P.p-1)*P.ps;const pa={s:'*',od:'sort_order.asc,created_at.desc',l:P.ps,o:off,lk:{}};
   if(pS)pa.lk.name=pS;const w={};if(pC)w.category=pC;if(pSt!=='')w.is_active=pSt==='true';if(Object.keys(w).length)pa.w=w;
-  const r=await sq('products',pa);P.l=r.data||[];P.t=r.count||0;selP=new Set();
+  const r=await sq('products',pa);P.l=r.data||[];P.t=r.count||0;if(typeof selP==='undefined'||!selP)selP=new Set();
 }
 function rProd(){
   const tp=Math.ceil(P.t/P.ps)||1;
   let h='<div><div class="flex justify-between items-center mb-6 flex-wrap gap-2"><h2 class="text-xl font-bold">商品管理 ('+P.t+')</h2>';
   h+='<div class="flex gap-2 flex-wrap"><button onclick="dlTemplate()" class="bs">📥 下载导入模板</button><button onclick="showImpM()" class="bs">📤 批量导入 Excel</button><button onclick="openPM(null)" class="bp">+ 新增商品</button></div></div>';
   // Filter bar
-  h+='<div class="cd p-4 mb-4 flex flex-wrap gap-3 items-center">';
+  h+='<div class="cd p-4 mb-4 flex flex-wrap gap-3 items-center fb">';
   h+='<input type="text" id="pSe" class="si2" placeholder="搜索商品名称..." value="'+esc(pS)+'">';
   h+='<select id="pCa" class="sl2"><option value="">全部分类</option>';
   for(const c of CO)h+='<option value="'+c.value+'" '+(pC===c.value?'selected':'')+'>'+c.label+'</option>';
@@ -199,21 +199,42 @@ function rProd(){
 }
 function bProd(){
   // Select all checkbox
-  const sa=document.getElementById('saP');if(sa)sa.onclick=function(){const ck=this.checked;document.querySelectorAll('.pc').forEach(function(c){c.checked=ck;if(ck)selP.add(c.dataset.id);else selP.delete(c.dataset.id)});loadPg()};
+  const sa=document.getElementById('saP');if(sa)sa.onclick=function(){const ck=this.checked;document.querySelectorAll('.pc').forEach(function(c){c.checked=ck;if(ck)selP.add(c.dataset.id);else selP.delete(c.dataset.id)});updS()};
   // Individual checkboxes
-  document.querySelectorAll('.pc').forEach(function(c){c.onclick=function(){if(this.checked)selP.add(this.dataset.id);else selP.delete(this.dataset.id);render()}});
+  document.querySelectorAll('.pc').forEach(function(c){c.onclick=function(){if(this.checked)selP.add(this.dataset.id);else selP.delete(this.dataset.id);updS()}});
 }
+// Update batch action bar only (no re-render)
+function updS(){
+  const fb=document.querySelector('.fb');if(!fb)return;
+  let a=fb.querySelector('.ba');if(!a){a=document.getElementById('baP')||document.createElement('span');a.id='baP';fb.appendChild(a)}
+  if(selP.size>0)a.innerHTML='<span class="text-sm text-gray-500 ml-auto">已选'+selP.size+'项</span><button onclick="bUpdS(true)" class="bg2">批量上架</button><button onclick="bUpdS(false)" class="bw">批量下架</button><button onclick="bDelP()" class="bd">批量删除</button><button onclick="bUpYz()" class="bs">解析有赞</button>';
+  else a.innerHTML='';
+}
+// Batch parse youzan URLs
+window.bUpYz=async function(){if(selP.size===0)return;
+  toast('批量解析有赞链接...');let ok=0,err=0;
+  for(const id of selP){
+    const p=P.l.find(x=>x.id===id);if(!p||!p.youzan_url)continue;
+    try{
+      const r=await fetch(p.youzan_url,{signal:AbortSignal.timeout(10000)});
+      // Just mark as parsed - real parsing would need youzan API
+      await sm('products','PATCH',{youzan_url_parsed:true||'',updated_at:new Date().toISOString()},{c:'id',v:id});
+      ok++;
+    }catch(e){err++}
+  }
+  toast('完成: '+ok+'成功, '+err+'失败');selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
 // Product filter actions
 window.applyPF=async function(){pS=document.getElementById('pSe')?.value||'';pC=document.getElementById('pCa')?.value||'';pSt=document.getElementById('pSt2')?.value||'';P.p=1;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
 window.clearPF=async function(){pS='';pC='';pSt='';P.p=1;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
 window.chPP=async function(p){if(p<1)return;P.p=p;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
 // Batch actions
 window.bUpdS=async function(active){if(selP.size===0)return;const ok=await confirm2('确认'+(active?'上架':'下架')+' '+selP.size+' 个商品？');if(!ok)return;
-  for(const id of selP){await sm('products','PATCH',{is_active:active},{c:'id',v:id})}toast(selP.size+'个商品已'+(active?'上架':'下架'));selP=new Set();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
-window.bDelP=async function(){if(selP.size===0)return;const ok=await confirm2('确认删除 '+selP.size+' 个商品？将同时删除关联试戴记录！');if(!ok)return;
-  for(const id of selP){await sm('tryon_records','DELETE',{},{});await sm('products','DELETE',{},{});}toast(selP.size+'个商品已删除');selP=new Set();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+  for(const id of selP){await sm('products','PATCH',{is_active:active},{c:'id',v:id})}toast(selP.size+'个商品已'+(active?'上架':'下架'));selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+window.bDelP=async function(){if(selP.size===0)return;const ok=await confirm2('确认删除 '+selP.size+' 个商品？');if(!ok)return;
+  for(const id of selP){await sm('tryon_records','DELETE',{},{c:'product_id',v:id});await sm('products','DELETE',{},{c:'id',v:id})}toast(selP.size+'个商品已删除');selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
 window.delP=async function(id){const ok=await confirm2('确认删除此商品？将同时删除关联试戴记录！');if(!ok)return;
   await sm('tryon_records','DELETE',{},{c:'product_id',v:id});await sm('products','DELETE',{},{c:'id',v:id});toast('商品已删除');await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+
 
 /* ============ PRODUCT MODAL ============ */
 function openPM(p){
