@@ -100,7 +100,7 @@ function bLogin(){document.getElementById('lBtn').onclick=function(){if(document
 
 /* ============ LAYOUT ============ */
 function rLayout(){
-  const m=[{id:'dashboard',l:'概览',i:'📊'},{id:'products',l:'商品管理',i:'📦'},{id:'users',l:'用户管理',i:'👤'},{id:'config',l:'API 配置',i:'⚙️'},{id:'records',l:'试戴记录',i:'📋'},{id:'apiLogs',l:'API 日志',i:'📝'},{id:'homepage',l:'首页装修',i:'🎨'},{id:'pageConfig',l:'页面配置',i:'📄'},{id:'dataIO',l:'数据导入导出',i:'💾'}];
+  const m=[{id:'dashboard',l:'概览',i:'📊'},{id:'products',l:'商品管理',i:'📦'},{id:'users',l:'用户管理',i:'👤'},{id:'systemMessages',l:'站内信',i:'✉️'},{id:'config',l:'API 配置',i:'⚙️'},{id:'records',l:'试戴记录',i:'📋'},{id:'apiLogs',l:'API 日志',i:'📝'},{id:'homepage',l:'首页装修',i:'🎨'},{id:'pageConfig',l:'页面配置',i:'📄'},{id:'dataIO',l:'数据导入导出',i:'💾'}];
   return'<div class="flex min-h-screen"><aside class="w-56 bg-gray-900 text-white flex flex-col flex-shrink-0"><div class="p-4 border-b border-gray-800"><h1 class="text-lg font-bold">RSNY 后台</h1></div><nav class="flex-1 py-2 overflow-y-auto">'+m.map(function(x){return'<a href="#'+x.id+'" class="si flex items-center gap-3 px-4 py-3 cursor-pointer '+(pg===x.id?'ac':'')+'" data-p="'+x.id+'"><span>'+x.i+'</span><span class="text-sm">'+x.l+'</span></a>'}).join('')+'</nav><div class="p-4 border-t border-gray-800"><button onclick="logout()" class="text-sm text-gray-400 hover:text-white">退出登录</button></div></aside><main class="flex-1 p-6 overflow-auto" id="mc"></main></div>';
 }
 function bNav(){document.querySelectorAll('[data-p]').forEach(function(e){e.onclick=function(ev){ev.preventDefault();nav(e.dataset.p)}})}
@@ -112,7 +112,8 @@ async function loadPg(){
   try{switch(pg){
     case'dashboard':await lDash();mc.innerHTML=rDash();break;
     case'products':await lProd();mc.innerHTML=rProd();bProd();break;
-    case'users':await lUser();mc.innerHTML=rUser();bUser();break;
+    case'users':await lUser2();mc.innerHTML=rUser2();bUser2();break;
+    case'systemMessages':await lSM();mc.innerHTML=rSM();bSM();break;
     case'config':await lConf();mc.innerHTML=rConf();bConf();break;
     case'records':await lRec();mc.innerHTML=rRec();bRec();break;
     case'apiLogs':await lALog();mc.innerHTML=rALog();bALog();break;
@@ -667,6 +668,146 @@ window.batchParseYouzan=async function(){
 /* ============ HASH ROUTING + INIT ============ */
 window.onhashchange=function(){const h=window.location.hash.slice(1);if(h&&h!==pg){pg=h;render()}};
 render();
+
+/* ============ SYSTEM MESSAGES (站内信) ============ */
+// Stored in api_config with key 'system_messages_json' as JSON array
+async function lSM(){
+  const r=await sq('api_config',{s:'*',w:{config_key:'system_messages_json'},l:1});
+  let msgs=[];if(r.data&&r.data.length){try{msgs=JSON.parse(r.data[0].config_value)}catch(e){msgs=[]}}
+  ST.sm=msgs;
+}
+function rSM(){
+  const msgs=ST.sm||[];
+  let h='<div><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">站内信</h2><button onclick="openSMModal(null)" class="bp">+ 新建消息</button></div>';
+  if(msgs.length){
+    h+='<div class="space-y-3">';
+    for(const m of msgs){
+      const typeMap={info:'bdg-b',success:'bdg-g',warning:'bdg-w',error:'bdg-r'};
+      const typeLabels={info:'通知',success:'成功',warning:'警告',error:'错误'};
+      h+='<div class="cd p-5"><div class="flex justify-between items-start"><div><span class="bdg '+(typeMap[m.type]||'bdg-b')+' mr-3">'+(typeLabels[m.type]||m.type)+'</span><span class="font-medium">'+esc(m.title)+'</span>'+(m.category?'<span class="badge bdg-y ml-2">'+esc(m.category)+'</span>':'')+'</div><div class="flex gap-2"><button onclick="openSMModal('+esc(JSON.stringify(m))+')" class="text-blue-500 hover:underline text-sm">编辑</button><button onclick="delSM('+msgs.indexOf(m)+')" class="text-red-500 hover:underline text-sm ml-2">删除</button></div></div><p class="text-sm text-gray-500 mt-2">'+esc(m.content)+'</p><div class="text-xs text-gray-400 mt-2">'+fmtTF(m.created_at)+' '+(m.is_read?'✅':'🔵')+'</div></div>';
+    }
+    h+='</div>';
+  }else h+='<div class="text-gray-400 text-center py-8">暂无站内信</div>';
+  h+='</div>'+rSMModal();
+  return h;
+}
+function rSMModal(){
+  return'<div class="mo" id="smModal" style="display:none"><div class="mb" style="max-width:550px"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold" id="smTitle">新建站内信</h3><button onclick="closeSMModal()" class="text-2xl text-gray-400">&times;</button></div><div class="space-y-4"><div class="flex gap-3"><div class="flex-1"><label class="fl">类型</label><select id="smType" class="fi"><option value="info">通知</option><option value="success">成功</option><option value="warning">警告</option><option value="error">错误</option></select></div><div class="flex-1"><label class="fl">分类</label><select id="smCat" class="fi"><option value="">无</option><option value="api_config">API配置</option><option value="product">商品</option><option value="system">系统</option><option value="user">用户</option></select></div></div><div><label class="fl">标题</label><input id="smTi" class="fi" placeholder="消息标题"></div><div><label class="fl">内容</label><textarea id="smContent" class="fi" rows="4" placeholder="消息内容"></textarea></div><input type="hidden" id="smIdx" value="-1"><div class="flex justify-end gap-3"><button onclick="closeSMModal()" class="bs">取消</button><button onclick="saveSM()" class="bp">保存</button></div></div></div></div>';
+}
+function bSM(){}
+let _smIdx=-1;
+window.openSMModal=function(m){
+  const modal=document.getElementById('smModal');if(!modal){document.body.insertAdjacentHTML('beforeend',rSMModal());return}
+  modal.style.display='flex';
+  if(m){_smIdx=(ST.sm||[]).indexOf(m);document.getElementById('smTitle').textContent='编辑站内信';document.getElementById('smType').value=m.type||'info';document.getElementById('smCat').value=m.category||'';document.getElementById('smTi').value=m.title||'';document.getElementById('smContent').value=m.content||'';document.getElementById('smIdx').value=_smIdx}
+  else{_smIdx=-1;document.getElementById('smTitle').textContent='新建站内信';document.getElementById('smType').value='info';document.getElementById('smCat').value='';document.getElementById('smTi').value='';document.getElementById('smContent').value='';document.getElementById('smIdx').value='-1'}
+};
+window.closeSMModal=function(){const m=document.getElementById('smModal');if(m)m.style.display='none'};
+window.saveSM=async function(){
+  const idx=parseInt(document.getElementById('smIdx')?.value||'-1');
+  const msg={type:document.getElementById('smType')?.value||'info',category:document.getElementById('smCat')?.value||'',title:document.getElementById('smTi')?.value?.trim()||'',content:document.getElementById('smContent')?.value?.trim()||'',is_read:false,created_at:new Date().toISOString()};
+  if(!msg.title){toast('请输入标题','e');return}
+  const msgs=[...(ST.sm||[])];
+  if(idx>=0&&idx<msgs.length){msgs[idx]={...(msgs[idx]||{}),type:msg.type,category:msg.category,title:msg.title,content:msg.content}}
+  else msgs.unshift(msg);
+  const val=JSON.stringify(msgs);
+  const existing=await sq('api_config',{s:'id',w:{config_key:'system_messages_json'},l:1});
+  let res;
+  if(existing.data&&existing.data.length)res=await sm('api_config','PATCH',{config_value:val},{c:'config_key',v:'system_messages_json'});
+  else res=await sm('api_config','POST',{config_key:'system_messages_json',config_value:val,description:'站内信数据'});
+  if(res.error){toast('保存失败','e');return}
+  toast('已保存');ST.sm=msgs;closeSMModal();document.getElementById('mc').innerHTML=rSM();bSM();
+};
+window.delSM=async function(idx){
+  const ok=await confirm2('确认删除此消息？');if(!ok)return;
+  const msgs=[...(ST.sm||[])];msgs.splice(idx,1);
+  const val=JSON.stringify(msgs);
+  const existing=await sq('api_config',{s:'id',w:{config_key:'system_messages_json'},l:1});
+  if(existing.data&&existing.data.length)await sm('api_config','PATCH',{config_value:val},{c:'config_key',v:'system_messages_json'});
+  ST.sm=msgs;toast('已删除');document.getElementById('mc').innerHTML=rSM();bSM();
+};
+
+/* ============ ENHANCED USERS (with user_info table) ============ */
+async function lUser2(){
+  const off=(U.p-1)*U.ps;
+  // Try user_info table first
+  let userInfoRes=await sq('user_info',{s:'*',od:'created_at.desc',l:U.ps,o:off});
+  if(userInfoRes.data&&userInfoRes.data.length){
+    // Get quotas for today
+    const today=new Date().toISOString().split('T')[0];
+    const quotaRes=await sq('user_quotas',{s:'*',w:{date:today}});
+    const quotaMap={};for(const q of(quotaRes.data||[]))quotaMap[q.user_id]=q;
+    // Get record counts
+    const recRes=await sq('tryon_records',{s:'user_id',l:9999});
+    const recMap={};for(const r of(recRes.data||[])){if(!recMap[r.user_id])recMap[r.user_id]=0;recMap[r.user_id]++}
+    U.l=userInfoRes.data.map(function(u){
+      const q=quotaMap[u.user_id]||{used_count:0,max_count:10};
+      return{
+        user_id:u.user_id,nickname:u.nickname||'',avatar_url:u.avatar_url||'',
+        wechat_id:u.openid||'',used_count:q.used_count,max_count:q.max_count,
+        remaining:Math.max(0,q.max_count-q.used_count),
+        total_records:recMap[u.user_id]||0,
+        is_authorized:!!(u.nickname&&u.avatar_url),
+        created_at:u.created_at
+      };
+    });
+    U.t=userInfoRes.count||U.l.length;
+    U._source='user_info';
+  }else{
+    // Fallback to tryon_records aggregation (original behavior)
+    await lUser();
+    U._source='tryon_records';
+  }
+  if(uS){U.l=U.l.filter(function(u){return (u.user_id||'').toLowerCase().includes(uS.toLowerCase())});U.t=U.l.length}
+}
+function rUser2(){
+  const tp=Math.ceil(U.t/U.ps)||1;const source=U._source;
+  let h='<div><h2 class="text-xl font-bold mb-6">用户管理 ('+U.t+')</h2>';
+  h+='<div class="cd p-4 mb-4 flex gap-3 items-center"><input type="text" id="uSe" class="si2" placeholder="搜索用户ID/昵称..." value="'+esc(uS)+'"><button onclick="applyUF2()" class="bp">搜索</button><button onclick="clearUF2()" class="bs">重置</button>'+(source==='user_info'?'<span class="text-xs text-gray-400 ml-2">数据来源: user_info</span>':'<span class="text-xs text-gray-400 ml-2">数据来源: tryon_records(需创建user_info表)</span>')+'</div>';
+  // Stats cards
+  if(source==='user_info'){
+    const authorized=U.l.filter(function(u){return u.is_authorized}).length;
+    h+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'+sC_mini('总用户',U.t)+sC_mini('已授权',authorized)+sC_mini('未授权',U.t-authorized)+sC_mini('总生成次数',U.l.reduce(function(s,u){return s+(u.total_records||0)},0))+'</div>';
+  }
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50">';
+  if(source==='user_info'){
+    h+='<th class="p-4">用户</th><th class="p-4">昵称</th><th class="p-4">配额(今日)</th><th class="p-4">总计</th><th class="p-4">授权</th><th class="p-4">注册时间</th><th class="p-4 text-right">操作</th>';
+  }else{
+    h+='<th class="p-4">用户ID</th><th class="p-4">试戴次数</th><th class="p-4">最后活跃</th><th class="p-4 text-right">操作</th>';
+  }
+  h+='</tr></thead><tbody>';
+  if(U.l.length){
+    if(source==='user_info'){
+      for(const u of U.l){
+        h+='<tr class="border-b border-gray-50 table-row">';
+        h+='<td class="p-4"><div class="flex items-center gap-3">'+(u.avatar_url?'<img src="'+u.avatar_url+'" class="w-10 h-10 rounded-full object-cover" onerror="this.style.display=\'none\'">':'<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">无</div>')+'<span class="font-mono text-xs">'+(u.user_id||'').slice(0,16)+'...</span></div></td>';
+        h+='<td class="p-4">'+esc(u.nickname||'-')+'</td>';
+        h+='<td class="p-4"><span class="text-sm">'+u.used_count+'/'+u.max_count+'</span><div class="text-xs text-gray-400">剩余'+u.remaining+'次</div></td>';
+        h+='<td class="p-4">'+u.total_records+'</td>';
+        h+='<td class="p-4">'+(u.is_authorized?'<span class="bdg bdg-g">已授权</span>':'<span class="bdg bdg-y">未授权</span>')+'</td>';
+        h+='<td class="p-4 text-gray-500 text-xs">'+fmtT(u.created_at)+'</td>';
+        h+='<td class="p-4 text-right"><button onclick="viewUserRec2(\''+esc(u.user_id)+'\')" class="text-blue-500 hover:underline mr-3 text-sm">记录</button><button onclick="delUser2(\''+esc(u.user_id)+'\')" class="text-red-500 hover:underline text-sm">删除</button></td></tr>';
+      }
+    }else{
+      for(const u of U.l){
+        h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 font-mono text-xs">'+esc(u.user_id||u.id||'')+'</td><td class="p-4">'+(u.tryon_count||0)+'</td><td class="p-4 text-gray-500">'+fmtT(u.last_active||u.created_at)+'</td>';
+        h+='<td class="p-4 text-right"><button onclick="viewUserRec2(\''+esc(u.user_id||u.id||'')+'\')" class="text-blue-500 hover:underline mr-3">查看记录</button><button onclick="delUser2(\''+esc(u.user_id||u.id||'')+'\')" class="text-red-500 hover:underline">删除</button></td></tr>';
+      }
+    }
+  }else h+='<tr><td colspan="7" class="p-8 text-center text-gray-400">暂无用户</td></tr>';
+  h+='</tbody></table><div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+U.t+'条</span><div class="flex gap-2"><button onclick="U.p='+(U.p-1)+';loadPg()" '+(U.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="U.p='+(U.p+1)+';loadPg()" '+(U.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  return h;
+}
+function sC_mini(l,v){return'<div class="cd p-4"><p class="text-xs text-gray-500">'+l+'</p><p class="text-xl font-bold">'+v+'</p></div>'}
+function bUser2(){}
+window.applyUF2=async function(){uS=document.getElementById('uSe')?.value||'';U.p=1;await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
+window.clearUF2=async function(){uS='';U.p=1;await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
+window.viewUserRec2=function(uid){pg='records';uS=uid;window.location.hash='records';loadPg()};
+window.delUser2=async function(uid){const ok=await confirm2('确认删除此用户所有数据？包括试戴记录、照片和用户信息。');if(!ok)return;
+  await sm('tryon_photos','DELETE',{},{c:'user_id',v:uid});await sm('tryon_records','DELETE',{},{c:'user_id',v:uid});
+  try{await sm('user_info','DELETE',{},{c:'user_id',v:uid})}catch(e){}
+  try{await sm('user_quotas','DELETE',{},{c:'user_id',v:uid})}catch(e){}
+  toast('用户数据已删除');await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
 
 </script>
 </body></html>
