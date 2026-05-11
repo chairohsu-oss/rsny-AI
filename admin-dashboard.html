@@ -809,5 +809,91 @@ window.delUser2=async function(uid){const ok=await confirm2('确认删除此用�
   try{await sm('user_quotas','DELETE',{},{c:'user_id',v:uid})}catch(e){}
   toast('用户数据已删除');await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
 
+/* ============ IMAGE UPLOAD TO OSS (via FC endpoint) ============ */
+const UP_API = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run/api/admin/upload-image';
+
+async function uploadImageToOss(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function() {
+      const base64 = reader.result.split(',')[1] || reader.result;
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      try {
+        const resp = await fetch(UP_API, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-admin-key':'rsny@1234'},
+          body:JSON.stringify({image:base64,ext:ext,folder:'products'})
+        });
+        const data = await resp.json();
+        if(data.code===200) resolve(data.data);
+        else reject(new Error(data.msg||'Upload failed'));
+      } catch(e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Add upload buttons to product images in modal
+function attachUploadButtons() {
+  // Find all image URL inputs in the product modal
+  const imgFields = [
+    {id:'pi1', label:'图片1'},{id:'pi2', label:'图片2'},{id:'pi3', label:'图片3'},
+    {id:'pi4', label:'图片4'},{id:'pi5', label:'图片5'},
+    {id:'ph1', label:'隐藏图1'},{id:'ph2', label:'隐藏图2'},{id:'ph3', label:'隐藏图3'},
+  ];
+  for(const f of imgFields) {
+    const input = document.getElementById(f.id);
+    if(!input) continue;
+    // Remove existing upload button
+    const existing = input.nextElementSibling;
+    if(existing && existing.classList && existing.classList.contains('up-btn')) existing.remove();
+    
+    const btn = document.createElement('button');
+    btn.className = 'up-btn';
+    btn.textContent = '📤';
+    btn.title = '上传到OSS';
+    btn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#3b82f6;color:white;border:none;border-radius:4px;width:28px;height:28px;font-size:14px;cursor:pointer;';
+    btn.onclick = async function(e) {
+      e.preventDefault();
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.onchange = async function() {
+        const file = fileInput.files[0];
+        if(!file) return;
+        btn.textContent = '⏳';
+        btn.disabled = true;
+        try {
+          const result = await uploadImageToOss(file);
+          input.value = result.url;
+          toast(f.label+' 上传成功');
+          // Show preview
+          const preview = document.getElementById(f.id+'_preview');
+          if(preview) preview.src = result.url;
+        } catch(e) {
+          toast('上传失败: '+e.message,'e');
+        }
+        btn.textContent = '📤';
+        btn.disabled = false;
+      };
+      fileInput.click();
+    };
+    // Make input's parent relative
+    if(input.parentElement.style.position !== 'relative') {
+      input.parentElement.style.position = 'relative';
+      input.style.paddingRight = '36px';
+    }
+    input.parentElement.appendChild(btn);
+  }
+}
+
+// Override product modal render to call attachUploadButtons
+const _origBProd = bProd;
+bProd = function() {
+  if(_origBProd) _origBProd();
+  setTimeout(attachUploadButtons, 100);
+};
+
 </script>
 </body></html>
