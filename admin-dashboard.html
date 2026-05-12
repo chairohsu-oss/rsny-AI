@@ -1,15 +1,1246 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>RSNY 管理后台 - 跳转中...</title>
-<script>
-// 自动跳转到管理后台首页
-window.location.href = '/rsny-AI/#/pages/admin/dashboard/index';
-</script>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RSNY 管理后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+*{scrollbar-width:thin}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f4f6}
+.si{transition:all .2s}.si:hover,.si.ac{background:rgba(255,255,255,.1)}
+.cd{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.bp{background:#111;color:#fff;padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer;border:none}.bp:hover{opacity:.85}.bp:disabled{opacity:.5;cursor:not-allowed}
+.bs{background:#f3f4f6;color:#111;padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer;border:none}.bs:hover{background:#e5e7eb}
+.bd{background:#fee2e2;color:#dc2626;padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
+.bg2{background:#dcfce7;color:#166534;padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
+.bw{background:#fef3c7;color:#92400e;padding:8px 16px;border-radius:8px;font-size:14px;cursor:pointer;border:none}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100}
+.mb{background:#fff;border-radius:16px;width:90%;max-width:850px;max-height:90vh;overflow-y:auto;padding:24px}
+.fi{width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none}.fi:focus{border-color:#111}
+.fl{font-size:13px;color:#6b7280;margin-bottom:6px;display:block;font-weight:500}
+.bdg{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500}
+.bdg-g{background:#dcfce7;color:#166534}.bdg-y{background:#f3f4f6;color:#6b7280}.bdg-r{background:#fee2e2;color:#dc2626}.bdg-b{background:#dbeafe;color:#1e40af}.bdg-w{background:#fef3c7;color:#92400e}
+.tst{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:14px;z-index:200;animation:sI .3s ease}
+.tst-s{background:#22c55e}.tst-e{background:#ef4444}.tst-i{background:#3b82f6}
+@keyframes sI{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.ld{display:inline-block;width:16px;height:16px;border:2px solid #e5e7eb;border-top-color:#111;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.si2{padding:8px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;min-width:200px}.si2:focus{border-color:#111}
+.sl2{padding:8px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;background:#fff}
+.is{position:relative;width:112px;height:144px;border:2px dashed #d1d5db;border-radius:8px;overflow:hidden;cursor:pointer;background:#fafafa;transition:border-color .2s}
+.is:hover{border-color:#60a5fa}.is img{width:100%;height:100%;object-fit:cover}
+.is .rb{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;cursor:pointer;line-height:1}
+.is .mt{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);text-align:center;color:#fff;font-size:11px;padding:2px 0}
+</style>
 </head>
-<body>
-<p>正在跳转到管理后台...</p>
-<p>如果未自动跳转，<a href="/rsny-AI/#/pages/admin/dashboard/index">点击这里</a></p>
-</body>
-</html>
+<body><div id="app"></div>
+<script>
+/* ============ CONFIG ============ */
+const SU='https://iwczepxmfjfqpdyiilrq.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3Y3plcHhtZmpmcXBkeWlpbHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MzcyMTQsImV4cCI6MjA5MTExMzIxNH0.m-_299ReoSkyVeptH2v9fb2IjCRwPnLUWoJATrmrKeU';
+const AB='https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+const AK='rsny@1234';
+const CN={necklace:'项链',ring:'戒指',earring:'耳饰',bracelet:'手链',bangle:'手镯',sunglasses:'墨镜',bag:'包袋',hat:'帽子',belt:'腰带',hair_accessory:'发饰'};
+const CO=Object.entries(CN).map(([v,l])=>({value:v,label:l}));
+const CM={'项链':'necklace','戒指':'ring','耳饰':'earring','手链':'bracelet','手镯':'bangle','墨镜':'sunglasses','包袋':'bag','帽子':'hat','腰带':'belt','发饰':'hair_accessory'};
+
+/* ============ STATE ============ */
+let pg='dashboard';
+let P={l:[],t:0,p:1,ps:30},U={l:[],t:0,p:1,ps:30},R={l:[],t:0,p:1,ps:50},AL={l:[],t:0,p:1,ps:50};
+let CF=[],ST={},PC=[];
+let pS='',pC='',pSt='',selP=new Set(),uS='';
+let editP=null,editImgs=[],editMainImg='',editHiddenImg='';
+
+/* ============ API UTILS ============ */
+const H={'apikey':SK,'Authorization':'Bearer '+SK,'Accept':'application/json','Prefer':'count=exact'};
+const HM={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'};
+
+async function sq(t,p={}){
+  let u=SU+'/rest/v1/'+t;const q=[];
+  if(p.s)q.push('select='+encodeURIComponent(p.s));if(p.l)q.push('limit='+p.l);if(p.o)q.push('offset='+p.o);
+  if(p.od)q.push('order='+encodeURIComponent(p.od));
+  if(p.w){for(const[k,v]of Object.entries(p.w)){if(v!==undefined&&v!==null&&v!=='')q.push(k+'=eq.'+encodeURIComponent(v))}}
+  if(p.lk){for(const[k,v]of Object.entries(p.lk)){if(v)q.push(k+'=ilike.*'+encodeURIComponent(v)+'*')}}
+  if(p.ge){for(const[k,v]of Object.entries(p.ge)){if(v)q.push(k+'=gte.'+encodeURIComponent(v))}}
+  if(q.length)u+='?'+q.join('&');
+  const r=await fetch(u,{headers:H});const d=await r.json();const c=r.headers.get('content-range')?.match(/\/(\d+)/)?.[1];
+  if(d&&d.error)return{error:d.error,data:[],count:0};return{data:Array.isArray(d)?d:[],count:parseInt(c||'0')};
+}
+async function sm(t,m,d,w){
+  let u=SU+'/rest/v1/'+t;if(w)u+='?'+w.c+'=eq.'+encodeURIComponent(w.v);
+  const r=await fetch(u,{method:m,headers:HM,body:JSON.stringify(d)});const x=await r.json().catch(()=>({}));
+  if(x&&x.error)return{error:x.error};return{data:x};
+}
+async function fcApi(path,opts={}){
+  const r=await fetch(AB+path,{method:opts.method||'GET',headers:{'Content-Type':'application/json','x-admin-key':AK,...(opts.h||{})},body:opts.body?JSON.stringify(opts.body):undefined});
+  return await r.json().catch(()=>({}));
+}
+
+/* ============ HELPERS ============ */
+function toast(m,t='s'){const e=document.createElement('div');e.className='tst tst-'+t;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;')}
+function fmtT(iso){if(!iso)return'-';const d=new Date(iso);return(d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function fmtTF(iso){if(!iso)return'-';const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')}
+function sb(s){const m={completed:'bdg-g',pending:'bdg-b',failed:'bdg-r',processing:'bdg-b',success:'bdg-g'};const n={completed:'成功',pending:'处理中',failed:'失败',processing:'处理中',success:'成功'};return'<span class="bdg '+(m[s]||'bdg-y')+'">'+(n[s]||s||'未知')+'</span>'}
+function pi(p){if(!p.images)return[];try{return JSON.parse(p.images)}catch(e){return[]}}
+function ic(p){return 1+pi(p).filter(i=>i).length}
+function parseYouzanLink(url){if(!url)return null;const m=url.match(/\/goods2\/([A-Za-z0-9]+)/);if(m)return{alias:m[1],path:'packages/goods/detail/index?alias='+m[1]};return null}
+async function confirm2(msg){return new Promise(r=>{const ov=document.createElement('div');ov.className='mo';ov.innerHTML='<div class="mb" style="max-width:400px"><p class="mb-4">'+msg+'</p><div class="flex justify-end gap-3"><button class="bs" id="_cn">取消</button><button class="bd" id="_cf">确认</button></div></div>';document.body.appendChild(ov);ov.querySelector('#_cn').onclick=()=>{ov.remove();r(false)};ov.querySelector('#_cf').onclick=()=>{ov.remove();r(true)}})}
+function prompt2(msg,def){return new Promise(r=>{const ov=document.createElement('div');ov.className='mo';ov.innerHTML='<div class="mb" style="max-width:400px"><p class="mb-4">'+msg+'</p><input class="fi mb-4" id="_pi" value="'+esc(def||'')+'"><div class="flex justify-end gap-3"><button class="bs" id="_cn">取消</button><button class="bp" id="_cf">确定</button></div></div>';document.body.appendChild(ov);ov.querySelector('#_cn').onclick=()=>{ov.remove();r(null)};ov.querySelector('#_cf').onclick=()=>{const v=ov.querySelector('#_pi').value;ov.remove();r(v)}})}
+
+/* ============ ROUTER ============ */
+function nav(p){pg=p;window.location.hash=p;render()}
+function render(){const a=document.getElementById('app');if(!localStorage.getItem('at')){a.innerHTML=rLogin();bLogin();return}a.innerHTML=rLayout();bNav();loadPg()}
+window.logout=function(){localStorage.removeItem('at');render()};
+
+/* ============ LOGIN ============ */
+function rLogin(){return'<div class="min-h-screen flex items-center justify-center bg-gray-100"><div class="cd p-8 w-full max-w-sm"><h1 class="text-xl font-bold mb-1 text-center">RSNY</h1><p class="text-sm text-gray-500 text-center mb-6">管理后台登录</p><div class="mb-4"><label class="fl">管理员密码</label><input type="password" id="pwd" class="fi" placeholder="请输入密码"></div><button id="lBtn" class="bp w-full">登录</button></div></div>'}
+function bLogin(){document.getElementById('lBtn').onclick=function(){if(document.getElementById('pwd').value===AK){localStorage.setItem('at',AK);render()}else toast('密码错误','e')}}
+
+/* ============ LAYOUT ============ */
+function rLayout(){
+  const m=[{id:'dashboard',l:'概览',i:'📊'},{id:'products',l:'商品管理',i:'📦'},{id:'users',l:'用户管理',i:'👤'},{id:'systemMessages',l:'站内信',i:'✉️'},{id:'config',l:'API 配置',i:'⚙️'},{id:'records',l:'试戴记录',i:'📋'},{id:'apiLogs',l:'API 日志',i:'📝'},{id:'homepage',l:'首页装修',i:'🎨'},{id:'pageConfig',l:'页面配置',i:'📄'},{id:'dataIO',l:'数据导入导出',i:'💾'}];
+  return'<div class="flex min-h-screen"><aside class="w-56 bg-gray-900 text-white flex flex-col flex-shrink-0"><div class="p-4 border-b border-gray-800"><h1 class="text-lg font-bold">RSNY 后台</h1></div><nav class="flex-1 py-2 overflow-y-auto">'+m.map(function(x){return'<a href="#'+x.id+'" class="si flex items-center gap-3 px-4 py-3 cursor-pointer '+(pg===x.id?'ac':'')+'" data-p="'+x.id+'"><span>'+x.i+'</span><span class="text-sm">'+x.l+'</span></a>'}).join('')+'</nav><div class="p-4 border-t border-gray-800"><button onclick="logout()" class="text-sm text-gray-400 hover:text-white">退出登录</button></div></aside><main class="flex-1 p-6 overflow-auto" id="mc"></main></div>';
+}
+function bNav(){document.querySelectorAll('[data-p]').forEach(function(e){e.onclick=function(ev){ev.preventDefault();nav(e.dataset.p)}})}
+
+/* ============ LOAD PAGE ============ */
+async function loadPg(){
+  const mc=document.getElementById('mc');if(!mc)return;
+  mc.innerHTML='<div class="flex items-center justify-center h-64"><span class="ld"></span></div>';
+  try{switch(pg){
+    case'dashboard':await lDash();mc.innerHTML=rDash();break;
+    case'products':await lProd();mc.innerHTML=rProd();bProd();break;
+    case'users':await lUser2();mc.innerHTML=rUser2();bUser2();break;
+    case'systemMessages':await lSM();mc.innerHTML=rSM();bSM();break;
+    case'config':await lConf();mc.innerHTML=rConf();bConf();break;
+    case'records':await lRec();mc.innerHTML=rRec();bRec();break;
+    case'apiLogs':await lALog();mc.innerHTML=rALog();bALog();break;
+    case'homepage':await lHP();mc.innerHTML=rHP();bHP();break;
+    case'pageConfig':await lPCfg();mc.innerHTML=rPCfg();bPCfg();break;
+    case'dataIO':mc.innerHTML=rDIO();bDIO();break;
+    default:await lDash();mc.innerHTML=rDash();
+  }}catch(e){console.error(e);mc.innerHTML='<div class="text-red-500 p-4">加载失败: '+esc(e.message)+'</div>'}
+}
+
+/* ============ DASHBOARD ============ */
+async function lDash(){
+  const td=new Date().toISOString().split('T')[0],ts=td+'T00:00:00';
+  const[pR,rR,tR]=await Promise.all([sq('products',{s:'id',l:9999}),sq('tryon_records',{s:'user_id',l:9999}),sq('tryon_records',{s:'user_id',ge:{created_at:ts}})]);
+  const uids=new Set(),tuids=new Set();
+  for(const x of(rR.data||[]))if(x.user_id)uids.add(x.user_id);
+  for(const x of(tR.data||[]))if(x.user_id)tuids.add(x.user_id);
+  ST={tp:pR.count||0,tu:uids.size,tr:rR.count||0,tc:tR.count||0,ta:tuids.size};
+  const recR=await sq('tryon_records',{s:'*',od:'created_at.desc',l:10});ST.rr=recR.data||[];
+  const prR=await sq('products',{s:'id,name,image_url,category,price,is_active',od:'created_at.desc',l:5});ST.rp=prR.data||[];
+}
+function rDash(){
+  let h='<div><h2 class="text-xl font-bold mb-6">数据概览</h2>';
+  h+='<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">';
+  h+=sC('今日生成',ST.tc||0,'text-blue-600')+sC('累计用户',ST.tu||0,'text-green-600')+sC('商品总数',ST.tp||0,'text-gray-900')+sC('累计记录',ST.tr||0,'text-purple-600')+sC('今日活跃',ST.ta||0,'text-orange-600');
+  h+='</div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+  // Latest products
+  h+='<div class="cd p-6"><h3 class="font-semibold mb-4">最新商品</h3>';
+  if(ST.rp&&ST.rp.length){for(const p of ST.rp){
+    h+='<div class="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">';
+    h+='<img src="'+(p.image_url||'https://via.placeholder.com/48')+'" class="w-12 h-12 rounded-lg object-cover" onerror="this.src=\'https://via.placeholder.com/48\'">';
+    h+='<div class="flex-1"><div class="text-sm font-medium">'+esc(p.name)+'</div><div class="text-xs text-gray-400">'+(CN[p.category]||p.category||'-')+' · ¥'+(p.price||0)+'</div></div>';
+    h+='<span class="bdg '+(p.is_active?'bdg-g':'bdg-y')+'">'+(p.is_active?'上架':'下架')+'</span></div>';
+  }}else h+='<div class="text-gray-400 text-center py-4">暂无商品</div>';
+  h+='</div>';
+  // Recent records
+  h+='<div class="cd p-6"><h3 class="font-semibold mb-4">最近试戴</h3><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b"><th class="pb-3">用户</th><th class="pb-3">状态</th><th class="pb-3">时间</th></tr></thead><tbody>';
+  if(ST.rr&&ST.rr.length){for(const r of ST.rr){
+    h+='<tr class="border-b border-gray-50"><td class="py-2 font-mono text-xs text-gray-500">'+(r.user_id||'').slice(0,16)+'...</td><td class="py-2">'+sb(r.status)+'</td><td class="py-2 text-gray-500">'+fmtT(r.created_at)+'</td></tr>';
+  }}else h+='<tr><td colspan="3" class="py-4 text-gray-400 text-center">暂无</td></tr>';
+  h+='</tbody></table></div></div></div>';
+  return h;
+}
+function sC(l,v,c){return'<div class="cd p-5"><p class="text-sm text-gray-500 mb-1">'+l+'</p><p class="text-2xl font-bold '+c+'">'+v+'</p></div>'}
+
+/* ============ PRODUCTS PAGE ============ */
+async function lProd(){
+  const off=(P.p-1)*P.ps;const pa={s:'*',od:'sort_order.asc,created_at.desc',l:P.ps,o:off,lk:{}};
+  if(pS)pa.lk.name=pS;const w={};if(pC)w.category=pC;if(pSt!=='')w.is_active=pSt==='true';if(Object.keys(w).length)pa.w=w;
+  const r=await sq('products',pa);P.l=r.data||[];P.t=r.count||0;if(typeof selP==='undefined'||!selP)selP=new Set();
+}
+function rProd(){
+  const tp=Math.ceil(P.t/P.ps)||1;
+  let h='<div><div class="flex justify-between items-center mb-6 flex-wrap gap-2"><h2 class="text-xl font-bold">商品管理 ('+P.t+')</h2>';
+  h+='<div class="flex gap-2 flex-wrap"><button onclick="dlTemplate()" class="bs">📥 下载导入模板</button><button onclick="showImpM()" class="bs">📤 批量导入 Excel</button><button onclick="openPM(null)" class="bp">+ 新增商品</button></div></div>';
+  // Filter bar
+  h+='<div class="cd p-4 mb-4 flex flex-wrap gap-3 items-center fb">';
+  h+='<input type="text" id="pSe" class="si2" placeholder="搜索商品名称..." value="'+esc(pS)+'">';
+  h+='<select id="pCa" class="sl2"><option value="">全部分类</option>';
+  for(const c of CO)h+='<option value="'+c.value+'" '+(pC===c.value?'selected':'')+'>'+c.label+'</option>';
+  h+='</select><select id="pSt2" class="sl2"><option value="">全部状态</option><option value="true" '+(pSt==='true'?'selected':'')+'>上架</option><option value="false" '+(pSt==='false'?'selected':'')+'>下架</option></select>';
+  h+='<button onclick="applyPF()" class="bp">筛选</button><button onclick="clearPF()" class="bs">重置</button>';
+  if(selP.size>0)h+='<span class="text-sm text-gray-500 ml-auto">已选'+selP.size+'项</span><button onclick="bUpdS(true)" class="bg2">批量上架</button><button onclick="bUpdS(false)" class="bw">批量下架</button><button onclick="bDelP()" class="bd">批量删除</button>';
+  h+='</div>';
+  // Table
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50"><th class="p-4 w-10"><input type="checkbox" id="saP"></th><th class="p-4">商品信息</th><th class="p-4">分类</th><th class="p-4">价格</th><th class="p-4">状态</th><th class="p-4">图片</th><th class="p-4">有赞</th><th class="p-4 text-right">操作</th></tr></thead><tbody>';
+  if(P.l.length){for(const p of P.l){
+    h+='<tr class="border-b border-gray-50 table-row '+(selP.has(p.id)?'bg-blue-50':'')+'">';
+    h+='<td class="p-4"><input type="checkbox" class="pc" data-id="'+p.id+'" '+(selP.has(p.id)?'checked':'')+'></td>';
+    h+='<td class="p-4"><div class="flex items-center gap-3"><img src="'+(p.image_url||'https://via.placeholder.com/48')+'" class="w-12 h-12 rounded-lg object-cover" onerror="this.src=\'https://via.placeholder.com/48\'"><div><div class="font-medium">'+esc(p.name)+'</div>'+(p.product_code?'<div class="text-xs text-gray-400">'+esc(p.product_code)+'</div>':'')+'</div></div></td>';
+    h+='<td class="p-4">'+(CN[p.category]||p.category||'-')+'</td>';
+    h+='<td class="p-4">¥'+(p.price||0)+'</td>';
+    h+='<td class="p-4">'+(p.is_active?'<span class="bdg bdg-g">上架</span>':'<span class="bdg bdg-y">下架</span>')+'</td>';
+    h+='<td class="p-4">'+ic(p)+'张</td>';
+    h+='<td class="p-4">'+(p.youzan_url?'<span class="bdg bdg-b">已绑定</span>':p.youzan_id?'<span class="bdg bdg-w">有ID</span>':'-')+'</td>';
+    h+='<td class="p-4 text-right"><button onclick="openPM('+esc(JSON.stringify(p))+')" class="text-blue-500 hover:underline mr-3">编辑</button><button onclick="delP(\''+p.id+'\')" class="text-red-500 hover:underline">删除</button></td>';
+    h+='</tr>';
+  }}else h+='<tr><td colspan="8" class="p-8 text-center text-gray-400">暂无商品</td></tr>';
+  h+='</tbody></table>';
+  h+='<div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+P.t+'条，第'+P.p+'/'+tp+'页</span><div class="flex gap-2"><button onclick="chPP('+(P.p-1)+')" '+(P.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="chPP('+(P.p+1)+')" '+(P.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  h+=rImpM();
+  return h;
+}
+function bProd(){
+  // Select all checkbox
+  const sa=document.getElementById('saP');if(sa)sa.onclick=function(){const ck=this.checked;document.querySelectorAll('.pc').forEach(function(c){c.checked=ck;if(ck)selP.add(c.dataset.id);else selP.delete(c.dataset.id)});updS()};
+  // Individual checkboxes
+  document.querySelectorAll('.pc').forEach(function(c){c.onclick=function(){if(this.checked)selP.add(this.dataset.id);else selP.delete(this.dataset.id);updS()}});
+}
+// Update batch action bar only (no re-render)
+function updS(){
+  const fb=document.querySelector('.fb');if(!fb)return;
+  let a=fb.querySelector('.ba');if(!a){a=document.getElementById('baP')||document.createElement('span');a.id='baP';fb.appendChild(a)}
+  if(selP.size>0)a.innerHTML='<span class="text-sm text-gray-500 ml-auto">已选'+selP.size+'项</span><button onclick="bUpdS(true)" class="bg2">批量上架</button><button onclick="bUpdS(false)" class="bw">批量下架</button><button onclick="bDelP()" class="bd">批量删除</button><button onclick="bUpYz()" class="bs">解析有赞</button>';
+  else a.innerHTML='';
+}
+// Batch parse youzan URLs
+window.bUpYz=async function(){if(selP.size===0)return;
+  toast('批量解析有赞链接...');let ok=0,err=0;
+  for(const id of selP){
+    const p=P.l.find(x=>x.id===id);if(!p||!p.youzan_url)continue;
+    try{
+      const r=await fetch(p.youzan_url,{signal:AbortSignal.timeout(10000)});
+      // Just mark as parsed - real parsing would need youzan API
+      await sm('products','PATCH',{youzan_url_parsed:true||'',updated_at:new Date().toISOString()},{c:'id',v:id});
+      ok++;
+    }catch(e){err++}
+  }
+  toast('完成: '+ok+'成功, '+err+'失败');selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+// Product filter actions
+window.applyPF=async function(){pS=document.getElementById('pSe')?.value||'';pC=document.getElementById('pCa')?.value||'';pSt=document.getElementById('pSt2')?.value||'';P.p=1;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+window.clearPF=async function(){pS='';pC='';pSt='';P.p=1;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+window.chPP=async function(p){if(p<1)return;P.p=p;await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+// Batch actions
+window.bUpdS=async function(active){if(selP.size===0)return;const ok=await confirm2('确认'+(active?'上架':'下架')+' '+selP.size+' 个商品？');if(!ok)return;
+  for(const id of selP){await sm('products','PATCH',{is_active:active},{c:'id',v:id})}toast(selP.size+'个商品已'+(active?'上架':'下架'));selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+window.bDelP=async function(){if(selP.size===0)return;const ok=await confirm2('确认删除 '+selP.size+' 个商品？');if(!ok)return;
+  for(const id of selP){await sm('tryon_records','DELETE',{},{c:'product_id',v:id});await sm('products','DELETE',{},{c:'id',v:id})}toast(selP.size+'个商品已删除');selP=new Set();updS();await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+window.delP=async function(id){const ok=await confirm2('确认删除此商品？将同时删除关联试戴记录！');if(!ok)return;
+  await sm('tryon_records','DELETE',{},{c:'product_id',v:id});await sm('products','DELETE',{},{c:'id',v:id});toast('商品已删除');await lProd();document.getElementById('mc').innerHTML=rProd();bProd()};
+
+
+/* ============ PRODUCT MODAL (crop + single hidden) ============ */
+// editP, editMainImg, editImgs, editHiddenImg are declared in part1-config.js
+let imgData=[]; // [{url:string}]
+
+function pi(p){
+  try{const v=p.images;if(!v)return[];const d=typeof v==='string'?JSON.parse(v):v;return Array.isArray(d)?d:[]}catch(e){return[]}
+}
+
+function openPM(p){
+  editP=p;
+  // Init image data (5 slots)
+  imgData=[];
+  if(p&&p.image_url)imgData.push({url:p.image_url});
+  const extraImgs=pi(p);
+  for(const u of extraImgs)imgData.push({url:u});
+  while(imgData.length<5)imgData.push({url:''});
+  editMainImg=p?(p.image_url||''):'';
+  editImgs=[];for(let i=1;i<5;i++)if(imgData[i]&&imgData[i].url)editImgs.push(imgData[i].url);
+  // Single hidden image (string, not array)
+  editHiddenImg=p&&p.hidden_image_url?p.hidden_image_url:'';
+  const e=!!p;
+  let h='<div class="mo" id="prodModal" onclick="if(event.target===this)closePM()"><div class="mb" style="max-width:950px;max-height:90vh;overflow-y:auto">';
+  h+='<div class="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2 border-b"><h3 class="text-lg font-bold">'+(e?'编辑商品':'添加商品')+'</h3><button onclick="closePM()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button></div>';
+  h+='<div class="space-y-4">';
+  // Basic info
+  h+='<div><label class="fl">商品名称 *</label><input id="pN" class="fi" value="'+esc(p?.name||'')+'"></div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">分类</label><select id="pCa2" class="fi">';
+  for(const c of CO)h+='<option value="'+c.value+'" '+(p?.category===c.value?'selected':'')+'>'+c.label+'</option>';
+  h+='</select></div><div class="flex-1"><label class="fl">价格</label><input id="pPr" type="number" class="fi" value="'+(p?.price||0)+'"></div><div class="flex-1"><label class="fl">排序</label><input id="pSo" type="number" class="fi" value="'+(p?.sort_order||0)+'"></div></div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">商品编码 (product_code)</label><input id="pPC" class="fi" value="'+esc(p?.product_code||'')+'"></div><div class="flex-1"><label class="fl">规格名称 (spec_name)</label><input id="pSN" class="fi" value="'+esc(p?.spec_name||'')+'"></div><div class="flex-1"><label class="fl">有赞ID (youzan_id)</label><input id="pYI" class="fi" value="'+esc(p?.youzan_id||'')+'"></div></div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">有赞链接 (youzan_url)</label><div class="flex gap-2"><input id="pYU" class="fi flex-1" value="'+esc(p?.youzan_url||'')+'" placeholder="https://youzan.com/..." oninput="parseYzLink()"><button onclick="parseYzLink(true)" class="bs text-xs whitespace-nowrap">🔍 解析</button></div></div><div class="flex-1"><label class="fl">跳转路径 (jump_url)</label><input id="pJU" class="fi" value="'+esc(p?.jump_url||'')+'"></div><div class="flex-1"><label class="fl">跳转AppID</label><input id="pJA" class="fi" value="'+esc(p?.jump_app_id||'')+'" placeholder="wx..."></div></div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">商品链接 (product_link)</label><input id="pPL" class="fi" value="'+esc(p?.product_link||'')+'"></div><div class="flex-1"><label class="fl">有赞商品ID</label><input id="pYP" class="fi" value="'+esc(p?.youzan_product_id||'')+'"></div><div class="flex-1"><label class="fl">原始ID (product_id)</label><input id="pPI" type="number" class="fi" value="'+(p?.product_id||'')+'"></div></div>';
+  h+='<div id="yzParseResult" class="text-xs text-blue-500"></div>';
+  // 5 image slots
+  h+='<div class="border rounded-lg p-4 bg-gray-50"><label class="fl font-semibold">商品图片（共5张）</label><p class="text-xs text-gray-400 mb-3">✂️裁剪/替换 · ⠿拖动排序 · 📋复制URL · 🔒设为隐藏</p>';
+  h+='<div class="flex flex-wrap gap-4" id="imgSlots">'+renderImgSlots()+'</div></div>';
+  // Hidden image (single, with crop)
+  h+='<div class="border rounded-lg p-4 bg-gray-50"><label class="fl font-semibold">隐藏图片（试戴参考图，单张）</label><p class="text-xs text-gray-400 mb-2">点击✂️裁剪，支持从OSS上传或输入URL</p>';
+  h+='<div id="hiArea">'+renderHiArea()+'</div></div>';
+  // Description + status
+  h+='<div><label class="fl">描述</label><textarea id="pDe" class="fi" rows="3">'+esc(p?.description||'')+'</textarea></div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">状态</label><select id="pIA" class="fi"><option value="true" '+(p?.is_active!==false?'selected':'')+'>上架</option><option value="false" '+(p?.is_active===false?'selected':'')+'>下架</option></select></div><div class="flex-1"><label class="fl">图片Key</label><input id="pIK" class="fi" value="'+esc(p?.image_key||'')+'"></div></div>';
+  h+='<div class="flex justify-end gap-3 pt-4 border-t"><button onclick="closePM()" class="bs">取消</button><button onclick="saveP()" class="bp" id="savePBtn">保存</button></div>';
+  h+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+  setTimeout(setupDrag,50);
+}
+
+// ===== Main Images =====
+function renderImgSlots(){
+  let h='';for(let i=0;i<5;i++){
+    const u=imgData[i]&&imgData[i].url?imgData[i].url:'';
+    const isMain=i===0;
+    h+='<div class="flex flex-col items-center relative">';
+    h+='<div class="is">';
+    h+='<div class="dh" draggable="true" ondragstart="dragStart(event,'+i+')" title="拖动排序">⠿</div>';
+    if(u){
+      h+='<img src="'+u+'" onerror="this.src=\'https://via.placeholder.com/112x144?text=Error\'">';
+      h+='<div class="rb" onclick="event.stopPropagation();rmMainImg('+i+')">&times;</div>';
+    }else{
+      h+='<div class="flex items-center justify-center h-full text-gray-300 text-2xl">+</div>';
+    }
+    if(isMain)h+='<div class="mt">主图</div>';
+    h+='</div>';
+    h+='<div class="flex gap-1 mt-1" style="max-width:112px;flex-wrap:wrap;justify-content:center">';
+    if(u){
+      h+='<button onclick="cropMainImg('+i+')" class="text-blue-500 text-xs hover:underline" title="裁剪/替换">✂️</button>';
+      h+='<button onclick="cpyUrl(\''+esc(u)+'\')" class="text-blue-500 text-xs hover:underline" title="复制URL">📋</button>';
+      h+='<button onclick="setAsHidden('+i+')" class="text-green-500 text-xs hover:underline" title="设为隐藏图">🔒</button>';
+    }else{
+      h+='<button onclick="cropMainImg('+i+')" class="text-blue-500 text-xs hover:underline" title="添加图片">+ 添加</button>';
+    }
+    h+='</div></div>';
+  }return h;
+}
+
+function refreshMainSlots(){const s=document.getElementById('imgSlots');if(s)s.innerHTML=renderImgSlots();setupDrag()}
+// Inject drag handle CSS
+if(!document.getElementById('_dhCss')){
+  const st=document.createElement('style');st.id='_dhCss';
+  st.textContent='.dh{position:absolute;top:2px;left:2px;width:20px;height:20px;background:rgba(0,0,0,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;cursor:grab;z-index:2;line-height:1}.dh:active{cursor:grabbing}';
+  document.head.appendChild(st);
+}
+
+// ===== Hidden Image (single) =====
+function renderHiArea(){
+  const u=editHiddenImg;
+  let h='<div class="flex items-center gap-4">';
+  h+='<div class="is" style="width:160px;height:160px;cursor:default">';
+  if(u)h+='<img src="'+u+'" onerror="this.style.display=\'none\'">';
+  else h+='<div class="flex items-center justify-center h-full text-gray-300 text-xl">无</div>';
+  h+='</div>';
+  h+='<div class="flex flex-col gap-2">';
+  if(u){
+    h+='<button onclick="cropHiddenImg()" class="bs text-xs">✂️ 裁剪/替换</button>';
+    h+='<button onclick="cpyUrl(\''+esc(u)+'\')" class="bs text-xs">📋 复制URL</button>';
+    h+='<button onclick="clearHiddenImg()" class="bd text-xs">🗑️ 清除</button>';
+  }else{
+    h+='<button onclick="cropHiddenImg()" class="bs text-xs">+ 添加隐藏图</button>';
+  }
+  h+='</div></div>';
+  return h;
+}
+
+function refreshHiArea(){const s=document.getElementById('hiArea');if(s)s.innerHTML=renderHiArea()}
+
+window.clearHiddenImg=function(){editHiddenImg='';refreshHiArea()};
+window.cropHiddenImg=function(){showCropModal(editHiddenImg,function(url){editHiddenImg=url;refreshHiArea()})};
+
+// ===== Main image operations =====
+window.cropMainImg=function(i){
+  const u=imgData[i]&&imgData[i].url?imgData[i].url:'';
+  showCropModal(u,function(url){imgData[i].url=url;refreshMainSlots();syncMainFromImgData()});
+};
+window.rmMainImg=function(i){imgData[i]={url:''};refreshMainSlots();syncMainFromImgData()};
+window.cpyUrl=function(u){if(!u)return;navigator.clipboard.writeText(u).then(function(){toast('已复制到剪贴板')}).catch(function(){toast('复制失败','e')})};
+window.setAsHidden=function(i){
+  const u=imgData[i]&&imgData[i].url?imgData[i].url:'';if(!u){toast('该图片为空','e');return}
+  editHiddenImg=u;refreshHiArea();toast('已设为隐藏图')};
+function syncMainFromImgData(){
+  editMainImg=imgData[0]&&imgData[0].url?imgData[0].url:'';
+  editImgs=[];for(let i=1;i<5;i++){if(imgData[i]&&imgData[i].url)editImgs.push(imgData[i].url)}
+}
+
+// ===== Youzan auto-parse =====
+window.parseYzLink=function(autoFill){
+  const url=document.getElementById('pYU')?.value||'';
+  const res=parseYouzanLink(url);
+  const el=document.getElementById('yzParseResult');
+  if(!el)return;
+  if(res){
+    el.innerHTML='✅ 已解析: alias='+res.alias+' → <code>'+res.path+'</code>';
+    if(autoFill){
+      const ju=document.getElementById('pJU');if(ju){ju.value=res.path}
+      const ja=document.getElementById('pJA');
+      if(ja&&!ja.value)ja.value='wxceee2295851cb729';
+      toast('已填入跳转路径和AppID');
+    }
+  }else if(url){
+    el.innerHTML='⚠️ 无法解析（需含/goods2/XXX）';
+  }else el.innerHTML='';
+};
+
+// ===== Drag & Drop =====
+let _dragIdx=-1;
+window.dragStart=function(e,i){_dragIdx=i;e.dataTransfer.effectAllowed='move'};
+window.dragOver=function(e,i){e.preventDefault();e.dataTransfer.dropEffect='move'};
+window.dragDrop=function(e,i){
+  e.preventDefault();if(_dragIdx<0||_dragIdx===i)return;
+  const item=imgData.splice(_dragIdx,1)[0];imgData.splice(i,0,item);
+  while(imgData.length<5)imgData.push({url:''});
+  _dragIdx=-1;refreshMainSlots();syncMainFromImgData();
+};
+function setupDrag(){}
+
+// ===== CROP MODAL (canvas-based, with OSS upload) =====
+let _cropCallback=null;
+let _cropStartX=0,_cropStartY=0,_cropX=0,_cropY=0,_cropW=0,_cropH=0;
+let _cropIsDragging=false;
+let _cropImg=null;
+
+function showCropModal(currentUrl, callback){
+  _cropCallback=callback;
+  _cropX=0;_cropY=0;_cropW=0;_cropH=0;_cropIsDragging=false;_cropImg=null;
+  let h='<div class="mo" id="cropModal" onclick="if(event.target===this)closeCrop()"><div class="mb" style="max-width:700px">';
+  h+='<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">裁剪图片</h3><button onclick="closeCrop()" class="text-2xl text-gray-400">&times;</button></div>';
+  // URL input
+  h+='<div class="mb-3 flex gap-2"><input id="cIn" class="fi flex-1" value="'+esc(currentUrl||'')+'" placeholder="输入图片URL或点击下方上传"><button onclick="upCImg()" class="bs text-xs">📤 上传到OSS</button></div>';
+  // Canvas container
+  h+='<div class="mb-3 text-center"><div id="cC" style="position:relative;display:inline-block;max-width:100%;overflow:hidden;border:1px solid #e5e7eb;border-radius:8px;background:#f9f9f9;min-height:200px">';
+  h+='<canvas id="cCan" style="max-width:100%;max-height:400px;cursor:crosshair"></canvas>';
+  h+='<div id="cSel" style="position:absolute;border:2px dashed #3b82f6;background:rgba(59,130,246,.15);display:none;pointer-events:none"></div>';
+  h+='</div></div>';
+  // Crop info + preview
+  h+='<div class="flex gap-4 items-center mb-3"><span id="cInfo" class="text-xs text-gray-500">拖动鼠标选择裁剪区域</span>';
+  h+='<span id="cDim" class="text-xs text-gray-400"></span></div>';
+  h+='<div class="flex gap-3 items-center">';
+  h+='<button onclick="doCrop()" class="bp">✂️ 确认裁剪</button>';
+  h+='<button onclick="useUrlDirect()" class="bs">直接用URL（不裁剪）</button>';
+  h+='<span class="text-xs text-gray-400 ml-auto">裁剪后将自动上传至OSS</span>';
+  h+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+  // Load image onto canvas
+  if(currentUrl)loadCropImage(currentUrl);
+  // URL input auto-load
+  document.getElementById('cIn').oninput=function(){
+    const u=this.value.trim();
+    if(u)loadCropImage(u);
+  };
+}
+
+function loadCropImage(url){
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  img.onload=function(){
+    _cropImg=img;
+    const can=document.getElementById('cCan');
+    if(!can)return;
+    const maxW=Math.min(img.naturalWidth,600);
+    const maxH=Math.min(img.naturalHeight,400);
+    const scale=Math.min(maxW/img.naturalWidth, maxH/img.naturalHeight, 1);
+    const w=Math.round(img.naturalWidth*scale);
+    const h=Math.round(img.naturalHeight*scale);
+    can.width=w;can.height=h;
+    can.style.width=w+'px';can.style.height=h+'px';
+    const ctx=can.getContext('2d');
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    // Reset selection
+    _cropX=0;_cropY=0;_cropW=0;_cropH=0;
+    document.getElementById('cSel').style.display='none';
+    document.getElementById('cInfo').textContent='拖动鼠标选择裁剪区域';
+    document.getElementById('cDim').textContent='';
+    // Mouse events
+    can.onmousedown=function(e){
+      const r=can.getBoundingClientRect();
+      _cropStartX=(e.clientX-r.left);_cropStartY=(e.clientY-r.top);
+      _cropIsDragging=true;
+    };
+    can.onmousemove=function(e){
+      if(!_cropIsDragging)return;
+      const r=can.getBoundingClientRect();
+      let mx=(e.clientX-r.left),my=(e.clientY-r.top);
+      let x=Math.min(_cropStartX,mx),y=Math.min(_cropStartY,my);
+      let w=Math.abs(mx-_cropStartX),hh=Math.abs(my-_cropStartY);
+      // Constrain to canvas
+      x=Math.max(0,Math.min(x,w));y=Math.max(0,Math.min(y,hh));
+      w=Math.min(w,can.width-x);hh=Math.min(hh,can.height-y);
+      _cropX=x;_cropY=y;_cropW=w;_cropH=hh;
+      const sel=document.getElementById('cSel');
+      if(sel){sel.style.left=x+'px';sel.style.top=y+'px';sel.style.width=w+'px';sel.style.height=hh+'px';sel.style.display=w>0&&hh>0?'block':'none'}
+      document.getElementById('cDim').textContent=w>0&&hh>0?w+'×'+hh+'px':'';
+    };
+    can.onmouseup=function(){_cropIsDragging=false};
+    can.onmouseleave=function(){_cropIsDragging=false};
+  };
+  img.onerror=function(){
+    document.getElementById('cInfo').textContent='❌ 图片加载失败，请检查URL';
+  };
+  img.src=url;
+}
+
+window.closeCrop=function(){_cropCallback=null;_cropImg=null;const m=document.getElementById('cropModal');if(m)m.remove()};
+window.useUrlDirect=function(){
+  const u=document.getElementById('cIn')?.value?.trim()||'';
+  if(!u){toast('请输入URL','e');return}
+  if(_cropCallback)_cropCallback(u);
+  closeCrop();
+};
+window.doCrop=async function(){
+  const can=document.getElementById('cCan');
+  if(!can||!_cropImg){toast('请先加载图片','e');return}
+  let x=_cropX,y=_cropY,w=_cropW,h=_cropH;
+  if(!w||!h){
+    // No selection → use full image
+    w=can.width;h=can.height;x=0;y=0;
+  }
+  // Scale back to natural dimensions
+  const scaleX=_cropImg.naturalWidth/can.width;
+  const scaleY=_cropImg.naturalHeight/can.height;
+  const sx=Math.round(x*scaleX),sy=Math.round(y*scaleY);
+  const sw=Math.round(w*scaleX),sh=Math.round(h*scaleY);
+  // Create offscreen canvas and crop
+  const oc=document.createElement('canvas');
+  oc.width=sw;oc.height=sh;
+  const octx=oc.getContext('2d');
+  octx.drawImage(_cropImg,sx,sy,sw,sh,0,0,sw,sh);
+  // Upload cropped image
+  toast('正在上传裁剪结果...');
+  oc.toBlob(async function(blob){
+    const reader=new FileReader();
+    reader.onload=async function(){
+      const base64=reader.result;
+      try{
+        const resp=await fetch('https://tryon-api-qluouziury.cn-hangzhou.fcapp.run/api/admin/upload-image',{
+          method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'rsny@1234'},
+          body:JSON.stringify({image:base64.split(',')[1]||base64,ext:'png',folder:'cropped'})
+        });
+        const data=await resp.json();
+        if(data.code===200){
+          if(_cropCallback)_cropCallback(data.data.url);
+          closeCrop();
+        }else{
+          toast('上传失败: '+data.msg,'e');
+        }
+      }catch(e){toast('上传错误: '+e.message,'e')}
+    };
+    reader.readAsDataURL(blob);
+  },'image/png');
+};
+
+window.upCImg=async function(){
+  const fi=document.createElement('input');fi.type='file';fi.accept='image/*';
+  fi.onchange=async function(){
+    const file=fi.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=async function(){
+      const base64=reader.result;
+      toast('正在上传...');
+      try{
+        const resp=await fetch('https://tryon-api-qluouziury.cn-hangzhou.fcapp.run/api/admin/upload-image',{
+          method:'POST',headers:{'Content-Type':'application/json','x-admin-key':'rsny@1234'},
+          body:JSON.stringify({image:base64.split(',')[1]||base64,ext:file.name.split('.').pop()||'png',folder:'products'})
+        });
+        const data=await resp.json();
+        if(data.code===200){
+          document.getElementById('cIn').value=data.data.url;
+          loadCropImage(data.data.url);
+          toast('上传成功，可开始裁剪');
+        }else toast('上传失败: '+data.msg,'e');
+      }catch(e){toast('上传错误: '+e.message,'e')}
+    };
+    reader.readAsDataURL(file);
+  };
+  fi.click();
+};
+
+// ===== Save =====
+window.closePM=function(){const m=document.getElementById('prodModal');if(m)m.remove()};
+window.saveP=async function(){
+  const name=document.getElementById('pN')?.value?.trim();if(!name){toast('请输入商品名称','e');return}
+  const btn=document.getElementById('savePBtn');if(btn)btn.disabled=true;
+  const imgUrls=imgData.filter(function(d){return d&&d.url}).map(function(d){return d.url});
+  const mainImg=imgUrls.length>0?imgUrls[0]:null;
+  const extraImgs=imgUrls.slice(1);
+  const data={
+    name,category:document.getElementById('pCa2')?.value||'necklace',
+    price:parseFloat(document.getElementById('pPr')?.value||0),
+    sort_order:parseInt(document.getElementById('pSo')?.value||0),
+    product_code:document.getElementById('pPC')?.value?.trim()||null,
+    spec_name:document.getElementById('pSN')?.value?.trim()||null,
+    youzan_id:document.getElementById('pYI')?.value?.trim()||null,
+    youzan_url:document.getElementById('pYU')?.value?.trim()||null,
+    jump_url:document.getElementById('pJU')?.value?.trim()||null,
+    jump_app_id:document.getElementById('pJA')?.value?.trim()||null,
+    product_link:document.getElementById('pPL')?.value?.trim()||null,
+    youzan_product_id:document.getElementById('pYP')?.value?.trim()||null,
+    product_id:parseInt(document.getElementById('pPI')?.value)||null,
+    image_url:mainImg,images:JSON.stringify(extraImgs),
+    hidden_image_url:editHiddenImg||null,
+    description:document.getElementById('pDe')?.value?.trim()||null,
+    is_active:document.getElementById('pIA')?.value==='true',
+    image_key:document.getElementById('pIK')?.value?.trim()||null,
+  };
+  const allowed=['name','category','price','sort_order','product_code','spec_name','youzan_id','youzan_url','jump_url','jump_app_id','product_link','youzan_product_id','product_id','image_url','images','hidden_image_url','description','is_active','image_key'];
+  const clean={};for(const[k,v]of Object.entries(data)){if(allowed.includes(k)&&v!==null&&v!==undefined)clean[k]=v}
+  let res;if(editP){res=await sm('products','PATCH',clean,{c:'id',v:editP.id})}else{res=await sm('products','POST',clean)}
+  if(res.error){toast('保存失败: '+res.error.message,'e');if(btn)btn.disabled=false;return}
+  toast(editP?'商品已更新':'商品已创建');closePM();await lProd();document.getElementById('mc').innerHTML=rProd();bProd();
+};
+
+/* ============ IMPORT MODAL + Excel template download ============ */
+function rImpM(){
+  return '<div class="mo" id="impModal" style="display:none" onclick="if(event.target===this)hideImpM()"><div class="mb" style="max-width:600px">'+
+    '<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">批量导入商品</h3><button onclick="hideImpM()" class="text-2xl text-gray-400">&times;</button></div>'+
+    '<div class="space-y-4">'+
+    '<p class="text-sm text-gray-500">选择 Excel 文件导入商品数据。请先下载模板填写。</p>'+
+    '<div><label class="fl">选择Excel文件</label><input type="file" id="impFile" accept=".xlsx,.xls" class="fi"></div>'+
+    '<div><label class="fl">重复商品处理方式</label><select id="dupMode" class="fi"><option value="skip">跳过重复</option><option value="update">更新已存在</option><option value="add_all">全部新增</option></select></div>'+
+    '<div class="flex justify-end gap-3 pt-4 border-t"><button onclick="hideImpM()" class="bs">取消</button><button onclick="doImport()" class="bp">开始导入</button></div>'+
+    '</div></div></div>';
+}
+window.showImpM=function(){const m=document.getElementById('impModal');if(m)m.style.display='flex';else location.reload()};
+window.hideImpM=function(){const m=document.getElementById('impModal');if(m)m.style.display='none'};
+/* ============ IMPORT continued + Excel template download ============ */
+window.dlTemplate=function(){
+  const wb=XLSX.utils.book_new();
+  const hdr=['商品编码(product_code)','名称(name)','规格名称(spec_name)','分类(category)','价格(price)','有赞链接(youzan_url)','有赞ID(youzan_id)','跳转AppID(jump_app_id)','有赞商品ID(youzan_product_id)','主图URL(image_url)','附图URL(images,逗号分隔)','隐藏图URL(hidden_image_url)','描述(description)','排序(sort_order)'];
+  const example=['P001','示例项链','默认','necklace','299','https://youzan.com/goods2/xxx','','','','https://img.example.com/main.jpg','https://img1.jpg,https://img2.jpg','','描述','0'];
+  const ws=XLSX.utils.aoa_to_sheet([hdr,example]);ws['!cols']=[{wch:20},{wch:20},{wch:15},{wch:15},{wch:10},{wch:35},{wch:15},{wch:20},{wch:20},{wch:40},{wch:50},{wch:40},{wch:30},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'商品数据');
+  // Instructions
+  const instRows=[['导入说明'],[''],['字段','说明','必填'],['product_code','商品编码，去重依据','否'],['name','商品名称','是'],['spec_name','规格名称','否'],['category','分类: necklace/ring/earring/bracelet/bangle/sunglasses/bag/hat/belt/hair_accessory','是'],['price','价格(数字)','否'],['youzan_url','有赞链接，可自动解析','否'],['youzan_id','有赞商品ID','否'],['jump_app_id','跳转小程序AppID','否'],['youzan_product_id','有赞商品ID(备用)','否'],['image_url','主图URL','是'],['images','附图URL，多个用逗号分隔','否'],['hidden_image_url','隐藏图片URL(试戴参考)','否'],['description','商品描述','否'],['sort_order','排序权重，越大越靠前','否']];
+  const is=XLSX.utils.aoa_to_sheet(instRows);XLSX.utils.book_append_sheet(wb,is,'说明');
+  XLSX.writeFile(wb,'RSNY_商品导入模板.xlsx');toast('模板已下载');
+};
+window.doImport=async function(){
+  const fileInput=document.getElementById('impFile');if(!fileInput||!fileInput.files.length){toast('请选择文件','e');return}
+  const mode=document.getElementById('dupMode')?.value||'skip';
+  try{
+    const data=await fileInput.files[0].arrayBuffer();const wb=XLSX.read(data);const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});if(!rows.length){toast('文件为空','e');return}
+    // Column name mapping (Chinese header -> field name)
+    const colMap={'商品编码(product_code)':'product_code','商品编码':'product_code','product_code':'product_code','名称(name)':'name','名称':'name','name':'name','规格名称(spec_name)':'spec_name','规格名称':'spec_name','spec_name':'spec_name','分类(category)':'category','分类':'category','category':'category','价格(price)':'price','价格':'price','price':'price','有赞链接(youzan_url)':'youzan_url','有赞链接':'youzan_url','youzan_url':'youzan_url','有赞ID(youzan_id)':'youzan_id','有赞ID':'youzan_id','youzan_id':'youzan_id','跳转AppID(jump_app_id)':'jump_app_id','跳转AppID':'jump_app_id','jump_app_id':'jump_app_id','有赞商品ID(youzan_product_id)':'youzan_product_id','youzan_product_id':'youzan_product_id','主图URL(image_url)':'image_url','主图URL':'image_url','image_url':'image_url','附图URL(images,逗号分隔)':'images','附图URL(images)':'images','images':'images','隐藏图URL(hidden_image_url)':'hidden_image_url','隐藏图URL':'hidden_image_url','hidden_image_url':'hidden_image_url','描述(description)':'description','描述':'description','description':'description','排序(sort_order)':'sort_order','排序':'sort_order','sort_order':'sort_order'};
+    // Fetch existing products for dedup
+    let existing=[];if(mode!=='duplicate'){const er=await sq('products',{s:'id,product_code',l:9999});existing=er.data||[]}
+    const existingCodes=new Set();for(const e of existing)if(e.product_code)existingCodes.add(e.product_code);
+    let imported=0,skipped=0,replaced=0,errors=0;
+    const preview=document.getElementById('impPreview');
+    for(const row of rows){
+      // Map row keys to field names
+      const item={};for(const[k,v]of Object.entries(row)){const fk=colMap[k];if(fk)item[fk]=v}
+      if(!item.name){errors++;continue}
+      // Handle category Chinese -> English
+      if(item.category&&CM[item.category])item.category=CM[item.category];
+      // Handle images: comma-separated string -> JSON array
+      if(item.images&&typeof item.images==='string'){const urls=item.images.split(',').map(u=>u.trim()).filter(u=>u);item.images=JSON.stringify(urls)}
+      // Handle price
+      if(item.price)item.price=parseFloat(item.price)||0;
+      if(item.sort_order)item.sort_order=parseInt(item.sort_order)||0;
+      item.is_active=true;
+      // Dedup logic
+      if(item.product_code&&existingCodes.has(item.product_code)){
+        if(mode==='skip'){skipped++;continue}
+        if(mode==='replace'){
+          // Find existing and update
+          const ex=existing.find(e=>e.product_code===item.product_code);
+          if(ex){const r=await sm('products','PATCH',item,{c:'id',v:ex.id});if(r.error)errors++;else replaced++}
+          continue;
+        }
+        // mode==='duplicate' -> just insert
+      }
+      const r=await sm('products','POST',item);if(r.error)errors++;else{imported++;if(item.product_code)existingCodes.add(item.product_code)}
+      if(preview)preview.innerHTML='<div class="text-sm text-gray-500">导入中... 已处理: '+(imported+skipped+replaced+errors)+'/'+rows.length+'</div>';
+    }
+    if(preview)preview.innerHTML='<div class="text-sm"><p class="text-green-600">✅ 新增: '+imported+'</p>'+(replaced?'<p class="text-blue-600">🔄 替换: '+replaced+'</p>':'')+(skipped?'<p class="text-yellow-600">⏭️ 跳过: '+skipped+'</p>':'')+(errors?'<p class="text-red-600">❌ 错误: '+errors+'</p>':'')+'</div>';
+    toast('导入完成');await lProd();document.getElementById('mc').innerHTML=rProd();bProd();
+  }catch(e){console.error(e);toast('导入失败: '+e.message,'e')}
+};
+
+/* ============ USERS ============ */
+async function lUser(){
+  const off=(U.p-1)*U.ps;const pa={s:'*',od:'created_at.desc',l:U.ps,o:off};
+  if(uS)pa.lk={user_id:uS};
+  const r=await sq('users',pa);U.l=r.data||[];U.t=r.count||0;
+  // If users table empty, aggregate from tryon_records
+  if(U.t===0){
+    const recR=await sq('tryon_records',{s:'user_id,status,created_at',l:9999});
+    const userMap={};for(const rec of(recR.data||[])){if(!rec.user_id)continue;if(!userMap[rec.user_id])userMap[rec.user_id]={user_id:rec.user_id,tryon_count:0,last_active:'',daily_quota:10};userMap[rec.user_id].tryon_count++;if(rec.created_at>userMap[rec.user_id].last_active)userMap[rec.user_id].last_active=rec.created_at}
+    U.l=Object.values(userMap).sort((a,b)=>b.last_active.localeCompare(a.last_active));U.t=U.l.length;
+  } else {
+    // Ensure daily_quota field exists for users from table
+    for(const u of U.l){if(u.daily_quota===undefined||u.daily_quota===null)u.daily_quota=10;}
+  }
+  // Also merge daily_quota from users table into aggregated list
+  if(U.t===0||(U.l.length>0&&U.l[0].tryon_count!==undefined)){
+    try{const uq=await sq('users',{s:'id,daily_quota',l:9999});const qm={};for(const x of(uq.data||[]))qm[x.id]=x.daily_quota;for(const u of U.l){if(qm[u.user_id]!==undefined)u.daily_quota=qm[u.user_id];}}catch(e){}
+  }
+}
+function rUser(){
+  const tp=Math.ceil(U.t/U.ps)||1;
+  let h='<div><h2 class="text-xl font-bold mb-6">用户管理 ('+U.t+')</h2>';
+  h+='<div class="cd p-4 mb-4 flex gap-3 items-center"><input type="text" id="uSe" class="si2" placeholder="搜索用户ID..." value="'+esc(uS)+'"><button onclick="applyUF()" class="bp">搜索</button><button onclick="clearUF()" class="bs">重置</button></div>';
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50"><th class="p-4">用户ID</th><th class="p-4">试戴次数</th><th class="p-4">每日配额</th><th class="p-4">最后活跃</th><th class="p-4 text-right">操作</th></tr></thead><tbody>';
+  if(U.l.length){for(const u of U.l){
+    const uid=esc(u.user_id||u.id||'');
+    h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 font-mono text-xs">'+uid+'</td><td class="p-4">'+(u.tryon_count||0)+'</td><td class="p-4 font-semibold text-blue-600">'+(u.daily_quota||10)+'</td><td class="p-4 text-gray-500">'+fmtT(u.last_active||u.created_at)+'</td>';
+    h+='<td class="p-4 text-right"><button onclick="editUserQ(\''+uid+'\','+(u.daily_quota||10)+')" class="text-green-600 hover:underline mr-3">编辑配额</button><button onclick="viewUserRec(\''+uid+'\')" class="text-blue-500 hover:underline mr-3">查看记录</button><button onclick="delUser(\''+uid+'\')" class="text-red-500 hover:underline">删除</button></td></tr>';
+  }}else h+='<tr><td colspan="5" class="p-8 text-center text-gray-400">暂无用户</td></tr>';
+  h+='</tbody></table><div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+U.t+'条</span><div class="flex gap-2"><button onclick="U.p='+(U.p-1)+';loadPg()" '+(U.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="U.p='+(U.p+1)+';loadPg()" '+(U.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  return h;
+}
+function bUser(){}
+window.applyUF=async function(){uS=document.getElementById('uSe')?.value||'';U.p=1;await lUser();document.getElementById('mc').innerHTML=rUser();bUser()};
+window.clearUF=async function(){uS='';U.p=1;await lUser();document.getElementById('mc').innerHTML=rUser();bUser()};
+window.viewUserRec=function(uid){pg='records';uS=uid;window.location.hash='records';loadPg()};
+window.delUser=async function(uid){const ok=await confirm2('确认删除用户 '+esc(uid)+' 吗？');if(!ok)return;const r=await sm('users','DELETE',{},{c:'id',v:uid});if(r.error){toast('删除失败: '+r.error,'e')}else{toast('删除成功');await lUser();document.getElementById('mc').innerHTML=rUser();bUser()}};
+
+/* ============ EDIT USER QUOTA ============ */
+window.editUserQ=function(uid,quota){
+  const uid2=esc(uid);
+  const overlay=document.createElement('div');overlay.id='uqOverlay';overlay.className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+  overlay.innerHTML='<div class="bg-white rounded-lg p-6 w-96 max-w-[90vw]"><h3 class="text-lg font-bold mb-4">编辑用户配额</h3><p class="text-sm text-gray-500 mb-4 font-mono break-all">'+uid2+'</p><div class="mb-4"><label class="block text-sm font-medium mb-1">每日生成次数</label><input type="number" id="uqInput" class="si2" value="'+(quota||10)+'" min="0" max="999"></div><div class="flex gap-3 justify-end"><button onclick="closeUQ()" class="bs">取消</button><button onclick="saveUQ(\''+uid2+'\')" class="bp">保存</button></div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('uqInput')?.focus();
+};
+window.closeUQ=function(){document.getElementById('uqOverlay')?.remove()};
+window.saveUQ=async function(uid){
+  const val=parseInt(document.getElementById('uqInput')?.value||'10');
+  if(isNaN(val)||val<0){toast('请输入有效数字','e');return;}
+  // Save to user_info table (user_id is text, matches WeChat openid)
+  const r1=await sm('user_info','PATCH',{daily_quota:val},{c:'user_id',v:uid});
+  if(r1.error){toast('保存失败: '+r1.error,'e');return;}
+  toast('配额已更新为 '+val);
+  closeUQ();
+  await loadPg();
+};
+
+/* ============ API CONFIG ============ */
+async function lConf(){const r=await sq('api_config',{s:'*',od:'created_at.desc',l:9999});CF=r.data||[]}
+function rConf(){
+  let h='<div><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">API 配置</h2><button onclick="openCfgM(null)" class="bp">+ 新增配置</button></div>';
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50"><th class="p-4">配置键</th><th class="p-4">配置值</th><th class="p-4">说明</th><th class="p-4">更新时间</th><th class="p-4 text-right">操作</th></tr></thead><tbody>';
+  if(CF.length){for(const c of CF){
+    const val=c.config_value||'';const shortVal=val.length>60?val.slice(0,60)+'...':val;
+    h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 font-medium">'+esc(c.config_key)+'</td><td class="p-4 text-xs font-mono break-all" style="max-width:300px">'+esc(shortVal)+'</td><td class="p-4 text-gray-500">'+esc(c.description||'')+'</td><td class="p-4 text-gray-500">'+fmtT(c.updated_at)+'</td>';
+    h+='<td class="p-4 text-right"><button onclick="testCfg(\''+esc(c.config_key)+'\')" class="text-green-500 hover:underline mr-3">测试</button><button onclick="openCfgM('+esc(JSON.stringify(c))+')" class="text-blue-500 hover:underline mr-3">编辑</button><button onclick="delCfg(\''+c.id+'\')" class="text-red-500 hover:underline">删除</button></td></tr>';
+  }}else h+='<tr><td colspan="5" class="p-8 text-center text-gray-400">暂无配置</td></tr>';
+  h+='</tbody></table></div></div>';
+  return h;
+}
+function bConf(){}
+// Config edit modal
+window.openCfgM=function(c){
+  const e=!!c;let h='<div class="mo" id="cfgModal" onclick="if(event.target===this)this.remove()"><div class="mb" style="max-width:600px">';
+  h+='<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">'+(e?'编辑配置':'新增配置')+'</h3><button onclick="document.getElementById(\'cfgModal\').remove()" class="text-2xl text-gray-400">&times;</button></div>';
+  h+='<div class="space-y-4"><div><label class="fl">配置键 (config_key)</label><input id="cK" class="fi" value="'+esc(c?.config_key||'')+'" '+(e?'readonly style="background:#f3f4f6"':'')+'></div>';
+  h+='<div><label class="fl">配置值 (config_value)</label><textarea id="cV" class="fi" rows="4">'+esc(c?.config_value||'')+'</textarea></div>';
+  h+='<div><label class="fl">说明 (description)</label><input id="cD" class="fi" value="'+esc(c?.description||'')+'"></div>';
+  h+='<div class="flex justify-end gap-3"><button onclick="document.getElementById(\'cfgModal\').remove()" class="bs">取消</button><button onclick="saveCfg()" class="bp">保存</button></div></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+};
+window.saveCfg=async function(){
+  const key=document.getElementById('cK')?.value?.trim();if(!key){toast('请输入配置键','e');return}
+  const data={config_key:key,config_value:document.getElementById('cV')?.value||'',description:document.getElementById('cD')?.value?.trim()||null};
+  // Check if key exists
+  const existing=await sq('api_config',{s:'id',w:{config_key:key},l:1});
+  let res;if(existing.data&&existing.data.length){res=await sm('api_config','PATCH',data,{c:'config_key',v:key})}
+  else{res=await sm('api_config','POST',data)}
+  if(res.error){toast('保存失败: '+res.error.message,'e');return}
+  toast('配置已保存');document.getElementById('cfgModal')?.remove();await lConf();document.getElementById('mc').innerHTML=rConf();bConf();
+};
+window.delCfg=async function(id){const ok=await confirm2('确认删除此配置？');if(!ok)return;await sm('api_config','DELETE',{},{c:'id',v:id});toast('已删除');await lConf();document.getElementById('mc').innerHTML=rConf();bConf()};
+// Test API connection
+window.testCfg=async function(key){
+  toast('正在测试 '+key+'...','i');
+  const cfg=CF.find(c=>c.config_key===key);if(!cfg){toast('配置不存在','e');return}
+  const url=cfg.config_value;try{
+    const r=await fetch(url,{method:'GET',headers:{'Authorization':'Bearer test'},signal:AbortSignal.timeout(10000)});
+    toast(key+' 可达 (HTTP '+r.status+')','s');
+  }catch(e){toast(key+' 不可达: '+e.message,'e')}
+};
+
+/* ============ TRYON RECORDS ============ */
+async function lRec(){
+  const off=(R.p-1)*R.ps;const pa={s:'*',od:'created_at.desc',l:R.ps,o:off};
+  if(uS)pa.w={user_id:uS};
+  const r=await sq('tryon_records',pa);R.l=r.data||[];R.t=r.count||0;
+}
+function rRec(){
+  const tp=Math.ceil(R.t/R.ps)||1;
+  let h='<div><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">试戴记录 ('+R.t+')</h2>'+(uS?'<button onclick="uS=\'\';loadPg()" class="bs">清除用户筛选</button>':'')+'</div>';
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50"><th class="p-4">用户</th><th class="p-4">商品</th><th class="p-4">生成图</th><th class="p-4">状态</th><th class="p-4">分类</th><th class="p-4">时间</th><th class="p-4 text-right">操作</th></tr></thead><tbody>';
+  if(R.l.length){for(const r of R.l){
+    h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 font-mono text-xs">'+(r.user_id||'').slice(0,16)+'...</td>';
+    h+='<td class="p-4">'+(r.product_image_url?'<img src="'+r.product_image_url+'" class="w-10 h-10 rounded object-cover" onerror="this.style.display=\'none\'">':'-')+'</td>';
+    h+='<td class="p-4">'+(r.generated_image_url?'<img src="'+r.generated_image_url+'" class="w-10 h-10 rounded object-cover" onerror="this.style.display=\'none\'">':r.user_photo_url?'<img src="'+r.user_photo_url+'" class="w-10 h-10 rounded object-cover" onerror="this.style.display=\'none\'">':'-')+'</td>';
+    h+='<td class="p-4">'+sb(r.status)+'</td><td class="p-4">'+(CN[r.category]||r.category||'-')+'</td><td class="p-4 text-gray-500">'+fmtT(r.created_at)+'</td>';
+    h+='<td class="p-4 text-right"><button onclick="viewRecDetail(\''+r.id+'\')" class="text-blue-500 hover:underline mr-3">详情</button><button onclick="delRec(\''+r.id+'\')" class="text-red-500 hover:underline">删除</button></td></tr>';
+  }}else h+='<tr><td colspan="7" class="p-8 text-center text-gray-400">暂无记录</td></tr>';
+  h+='</tbody></table><div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+R.t+'条，第'+R.p+'/'+tp+'页</span><div class="flex gap-2"><button onclick="R.p='+(R.p-1)+';loadPg()" '+(R.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="R.p='+(R.p+1)+';loadPg()" '+(R.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  return h;
+}
+function bRec(){}
+window.viewRecDetail=function(id){
+  const r=R.l.find(x=>x.id===id);if(!r)return;
+  let h='<div class="mo" onclick="if(event.target===this)this.remove()"><div class="mb" style="max-width:700px">';
+  h+='<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">试戴记录详情</h3><button onclick="this.closest(\'.mo\').remove()" class="text-2xl text-gray-400">&times;</button></div>';
+  h+='<div class="space-y-3 text-sm">';
+  h+='<div class="grid grid-cols-3 gap-4">';
+  if(r.product_image_url)h+='<div><label class="fl">商品图</label><img src="'+r.product_image_url+'" class="w-32 h-32 rounded object-cover" onerror="this.style.display=\'none\'"></div>';
+  if(r.user_photo_url)h+='<div><label class="fl">用户照片</label><img src="'+r.user_photo_url+'" class="w-32 h-32 rounded object-cover" onerror="this.style.display=\'none\'"></div>';
+  if(r.generated_image_url)h+='<div><label class="fl">生成图</label><img src="'+r.generated_image_url+'" class="w-32 h-32 rounded object-cover" onerror="this.style.display=\'none\'"></div>';
+  h+='</div>';
+  const fields=[['ID',r.id],['用户ID',r.user_id],['商品ID',r.product_id],['状态',r.status],['分类',r.category],['错误信息',r.error_message],['创建时间',fmtTF(r.created_at)],['更新时间',fmtTF(r.updated_at)]];
+  for(const[k,v]of fields)h+='<div class="flex"><span class="text-gray-500 w-24 flex-shrink-0">'+k+'</span><span class="font-mono text-xs break-all">'+esc(v||'-')+'</span></div>';
+  h+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+};
+window.delRec=async function(id){const ok=await confirm2('确认删除此试戴记录？');if(!ok)return;await sm('tryon_records','DELETE',{},{c:'id',v:id});toast('已删除');await lRec();document.getElementById('mc').innerHTML=rRec();bRec()};
+
+/* ============ API LOGS ============ */
+async function lALog(){
+  const off=(AL.p-1)*AL.ps;const r=await sq('api_logs',{s:'*',od:'created_at.desc',l:AL.ps,o:off});
+  AL.l=r.data||[];AL.t=r.count||0;
+}
+function rALog(){
+  const tp=Math.ceil(AL.t/AL.ps)||1;
+  let h='<div><h2 class="text-xl font-bold mb-6">API 日志 ('+AL.t+')</h2>';
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50"><th class="p-4">时间</th><th class="p-4">接口</th><th class="p-4">方法</th><th class="p-4">状态码</th><th class="p-4">耗时</th><th class="p-4 text-right">操作</th></tr></thead><tbody>';
+  if(AL.l.length){for(const l of AL.l){
+    h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 text-gray-500">'+fmtTF(l.created_at)+'</td><td class="p-4 font-mono text-xs">'+esc(l.endpoint||l.path||'-')+'</td><td class="p-4">'+esc(l.method||'-')+'</td>';
+    h+='<td class="p-4">'+(l.status_code>=400?'<span class="bdg bdg-r">'+l.status_code+'</span>':'<span class="bdg bdg-g">'+l.status_code+'</span>')+'</td>';
+    h+='<td class="p-4">'+(l.duration?l.duration+'ms':'-')+'</td>';
+    h+='<td class="p-4 text-right"><button onclick="viewLogDetail(\''+l.id+'\')" class="text-blue-500 hover:underline">详情</button></td></tr>';
+  }}else h+='<tr><td colspan="6" class="p-8 text-center text-gray-400">暂无日志</td></tr>';
+  h+='</tbody></table><div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+AL.t+'条</span><div class="flex gap-2"><button onclick="AL.p='+(AL.p-1)+';loadPg()" '+(AL.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="AL.p='+(AL.p+1)+';loadPg()" '+(AL.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  return h;
+}
+function bALog(){}
+window.viewLogDetail=function(id){
+  const l=AL.l.find(x=>x.id===id);if(!l)return;
+  let h='<div class="mo" onclick="if(event.target===this)this.remove()"><div class="mb" style="max-width:700px">';
+  h+='<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">API 日志详情</h3><button onclick="this.closest(\'.mo\').remove()" class="text-2xl text-gray-400">&times;</button></div>';
+  h+='<div class="space-y-3 text-sm">';
+  const fields=[['ID',l.id],['时间',fmtTF(l.created_at)],['接口',l.endpoint||l.path],['方法',l.method],['状态码',l.status_code],['耗时',l.duration?l.duration+'ms':'-'],['用户ID',l.user_id],['错误信息',l.error_message]];
+  for(const[k,v]of fields)if(v)h+='<div class="flex"><span class="text-gray-500 w-24 flex-shrink-0">'+k+'</span><span class="font-mono text-xs break-all">'+esc(String(v))+'</span></div>';
+  if(l.request_body)h+='<div><label class="fl">请求体</label><pre class="bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40">'+esc(typeof l.request_body==='string'?l.request_body:JSON.stringify(l.request_body,null,2))+'</pre></div>';
+  if(l.response_body)h+='<div><label class="fl">响应体</label><pre class="bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40">'+esc(typeof l.response_body==='string'?l.response_body:JSON.stringify(l.response_body,null,2))+'</pre></div>';
+  h+='</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+};
+
+/* ============ HOMEPAGE CONFIG ============ */
+async function lHP(){
+  // Try loading from api_config with key 'homepage_config'
+  const r=await sq('api_config',{s:'*',w:{config_key:'homepage_config'},l:1});
+  let cfg={};if(r.data&&r.data.length){try{cfg=JSON.parse(r.data[0].config_value)}catch(e){cfg={}}}
+  ST.hp=cfg;
+}
+function rHP(){
+  const cfg=ST.hp||{};
+  let h='<div><h2 class="text-xl font-bold mb-6">首页装修</h2>';
+  h+='<div class="cd p-6 space-y-6">';
+  // Banner
+  h+='<div><label class="fl">Banner 图片URL</label><input id="hpBanner" class="fi" value="'+esc(cfg.banner_url||'')+'" placeholder="https://...">';
+  if(cfg.banner_url)h+='<img src="'+cfg.banner_url+'" class="mt-2 rounded-lg max-h-40" onerror="this.style.display=\'none\'">';
+  h+='</div>';
+  h+='<div class="flex gap-4"><div class="flex-1"><label class="fl">Banner 标题</label><input id="hpTitle" class="fi" value="'+esc(cfg.banner_title||'')+'"></div><div class="flex-1"><label class="fl">Banner 副标题</label><input id="hpSub" class="fi" value="'+esc(cfg.banner_subtitle||'')+'"></div></div>';
+  // Featured products
+  h+='<div><label class="fl">推荐商品ID列表 (逗号分隔)</label><input id="hpFP" class="fi" value="'+esc((cfg.featured_products||[]).join(','))+'" placeholder="uuid1,uuid2,uuid3"><p class="text-xs text-gray-400 mt-1">商品ID可在商品管理页查看</p></div>';
+  // Category order
+  h+='<div><label class="fl">分类显示顺序 (逗号分隔英文key)</label><input id="hpCO" class="fi" value="'+esc((cfg.category_order||[]).join(','))+'" placeholder="necklace,earring,ring"><p class="text-xs text-gray-400 mt-1">可选: '+Object.keys(CN).join(', ')+'</p></div>';
+  // Preview
+  h+='<div class="border rounded-lg p-4 bg-gray-50"><h4 class="font-medium mb-3">预览</h4>';
+  if(cfg.banner_url)h+='<img src="'+cfg.banner_url+'" class="w-full rounded-lg max-h-48 mb-3 object-cover" onerror="this.style.display=\'none\'">';
+  if(cfg.banner_title)h+='<h3 class="text-lg font-bold">'+esc(cfg.banner_title)+'</h3>';
+  if(cfg.banner_subtitle)h+='<p class="text-gray-500 text-sm">'+esc(cfg.banner_subtitle)+'</p>';
+  h+='</div>';
+  h+='<div class="flex justify-end"><button onclick="saveHP()" class="bp">保存配置</button></div>';
+  h+='</div></div>';
+  return h;
+}
+function bHP(){}
+window.saveHP=async function(){
+  const cfg={banner_url:document.getElementById('hpBanner')?.value?.trim()||'',banner_title:document.getElementById('hpTitle')?.value?.trim()||'',banner_subtitle:document.getElementById('hpSub')?.value?.trim()||'',featured_products:(document.getElementById('hpFP')?.value||'').split(',').map(s=>s.trim()).filter(s=>s),category_order:(document.getElementById('hpCO')?.value||'').split(',').map(s=>s.trim()).filter(s=>s)};
+  const val=JSON.stringify(cfg);
+  // Upsert via api_config
+  const existing=await sq('api_config',{s:'id',w:{config_key:'homepage_config'},l:1});
+  let res;if(existing.data&&existing.data.length){res=await sm('api_config','PATCH',{config_value:val},{c:'config_key',v:'homepage_config'})}
+  else{res=await sm('api_config','POST',{config_key:'homepage_config',config_value:val,description:'首页装修配置'})}
+  if(res.error){toast('保存失败','e');return}
+  toast('首页配置已保存');
+};
+
+/* ============ PAGE CONFIG ============ */
+async function lPCfg(){
+  const r=await sq('api_config',{s:'*',lk:{config_key:'page_config_%'},l:9999});
+  PC=r.data||[];
+}
+function rPCfg(){
+  let h='<div><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">页面配置</h2><button onclick="openPCfgM(null)" class="bp">+ 新增页面配置</button></div>';
+  h+='<div class="grid gap-4">';
+  if(PC.length){for(const c of PC){
+    let cfg={};try{cfg=JSON.parse(c.config_value)}catch(e){cfg={raw:c.config_value}}
+    const pageName=c.config_key.replace('page_config_','');
+    h+='<div class="cd p-5"><div class="flex justify-between items-start"><div><h3 class="font-medium">'+esc(pageName)+'</h3><p class="text-xs text-gray-400 mt-1">'+esc(c.description||'')+'</p><p class="text-xs text-gray-500 mt-2 font-mono">'+esc(JSON.stringify(cfg).slice(0,120))+(JSON.stringify(cfg).length>120?'...':'')+'</p></div>';
+    h+='<div class="flex gap-2"><button onclick="openPCfgM('+esc(JSON.stringify(c))+')" class="text-blue-500 hover:underline">编辑</button><button onclick="delPCfg(\''+c.id+'\')" class="text-red-500 hover:underline ml-3">删除</button></div></div></div>';
+  }}else h+='<div class="text-gray-400 text-center py-8">暂无页面配置</div>';
+  h+='</div></div>';
+  return h;
+}
+function bPCfg(){}
+window.openPCfgM=function(c){
+  const e=!!c;const existingKey=e?c.config_key:'page_config_';
+  let val='';if(e)val=c.config_value;try{val=JSON.stringify(JSON.parse(val),null,2)}catch(e2){}
+  let h='<div class="mo" id="pcfgModal" onclick="if(event.target===this)this.remove()"><div class="mb" style="max-width:650px">';
+  h+='<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">'+(e?'编辑页面配置':'新增页面配置')+'</h3><button onclick="document.getElementById(\'pcfgModal\').remove()" class="text-2xl text-gray-400">&times;</button></div>';
+  h+='<div class="space-y-4"><div><label class="fl">页面标识 (英文)</label><input id="pcK" class="fi" value="'+esc(e?existingKey.replace('page_config_',''):'')+'" '+(e?'readonly style="background:#f3f4f6"':'')+' placeholder="例如: profile, upload"><p class="text-xs text-gray-400 mt-1">将存储为 page_config_{标识}</p></div>';
+  h+='<div><label class="fl">配置内容 (JSON)</label><textarea id="pcV" class="fi" rows="10" style="font-family:monospace">'+esc(val)+'</textarea></div>';
+  h+='<div><label class="fl">说明</label><input id="pcD" class="fi" value="'+esc(c?.description||'')+'"></div>';
+  h+='<div class="flex justify-end gap-3"><button onclick="document.getElementById(\'pcfgModal\').remove()" class="bs">取消</button><button onclick="savePCfg()" class="bp">保存</button></div></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+};
+window.savePCfg=async function(){
+  const key='page_config_'+document.getElementById('pcK')?.value?.trim();if(!key||key==='page_config_'){toast('请输入页面标识','e');return}
+  const val=document.getElementById('pcV')?.value||'{}';
+  try{JSON.parse(val)}catch(e){toast('JSON 格式错误','e');return}
+  const data={config_key:key,config_value:val,description:document.getElementById('pcD')?.value?.trim()||null};
+  const existing=await sq('api_config',{s:'id',w:{config_key:key},l:1});
+  let res;if(existing.data&&existing.data.length){res=await sm('api_config','PATCH',data,{c:'config_key',v:key})}
+  else{res=await sm('api_config','POST',data)}
+  if(res.error){toast('保存失败','e');return}
+  toast('已保存');document.getElementById('pcfgModal')?.remove();await lPCfg();document.getElementById('mc').innerHTML=rPCfg();bPCfg();
+};
+window.delPCfg=async function(id){const ok=await confirm2('确认删除？');if(!ok)return;await sm('api_config','DELETE',{},{c:'id',v:id});toast('已删除');await lPCfg();document.getElementById('mc').innerHTML=rPCfg();bPCfg()};
+
+/* ============ DATA IMPORT/EXPORT ============ */
+function rDIO(){
+  let h='<div><h2 class="text-xl font-bold mb-6">数据导入导出</h2>';
+  h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+  // Export section
+  h+='<div class="cd p-6"><h3 class="font-semibold mb-4">📤 一键导出</h3><p class="text-sm text-gray-500 mb-4">导出所有数据为 JSON 文件</p>';
+  h+='<div class="space-y-3">';
+  h+='<button onclick="exportTable(\'products\')" class="bs w-full text-left">📦 导出商品数据</button>';
+  h+='<button onclick="exportTable(\'api_config\')" class="bs w-full text-left">⚙️ 导出 API 配置</button>';
+  h+='<button onclick="exportTable(\'tryon_records\')" class="bs w-full text-left">📋 导出试戴记录</button>';
+  h+='<button onclick="exportTable(\'tryon_photos\')" class="bs w-full text-left">📷 导出试戴照片</button>';
+  h+='<button onclick="exportAll()" class="bp w-full">💾 导出全部数据</button>';
+  h+='</div></div>';
+  // Import section
+  h+='<div class="cd p-6"><h3 class="font-semibold mb-4">📥 一键导入</h3><p class="text-sm text-gray-500 mb-4">从 JSON 文件导入数据（按 product_code 去重）</p>';
+  h+='<div class="space-y-4">';
+  h+='<div><label class="fl">选择 JSON 文件</label><input type="file" id="dioFile" accept=".json" class="fi"></div>';
+  h+='<div><label class="fl">导入模式</label><select id="dioMode" class="fi"><option value="skip">跳过已存在</option><option value="replace">替换已存在</option><option value="duplicate">允许重复</option></select></div>';
+  h+='<button onclick="importJSON()" class="bp w-full">📥 开始导入</button>';
+  h+='<div id="dioResult"></div>';
+  h+='</div></div>';
+  h+='</div>';
+  // Batch parse youzan links
+  h+='<div class="cd p-6 mt-6"><h3 class="font-semibold mb-4">🔗 批量解析有赞链接</h3><p class="text-sm text-gray-500 mb-4">为已有有赞链接的商品自动解析跳转路径并填入 jump_url</p>';
+  h+='<button onclick="batchParseYouzan()" class="bp">🔄 开始解析</button><div id="yzBatchResult" class="mt-4"></div></div>';
+  return h+'</div>';
+}
+function bDIO(){}
+// Export single table
+window.exportTable=async function(table){
+  toast('正在导出 '+table+'...','i');
+  const r=await sq(table,{s:'*',l:9999});if(r.error){toast('导出失败','e');return}
+  const blob=new Blob([JSON.stringify(r.data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=table+'_'+new Date().toISOString().split('T')[0]+'.json';a.click();URL.revokeObjectURL(url);
+  toast('已导出 '+(r.data?.length||0)+' 条');
+};
+// Export all
+window.exportAll=async function(){
+  toast('正在导出全部数据...','i');
+  const tables=['products','api_config','tryon_records','tryon_photos','users'];
+  const data={exportTime:new Date().toISOString()};
+  for(const t of tables){const r=await sq(t,{s:'*',l:9999});data[t]=r.data||[]}
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='RSNY_全部数据_'+new Date().toISOString().split('T')[0]+'.json';a.click();URL.revokeObjectURL(url);
+  toast('全部数据已导出');
+};
+// Import JSON
+window.importJSON=async function(){
+  const fi=document.getElementById('dioFile');if(!fi||!fi.files.length){toast('请选择文件','e');return}
+  const mode=document.getElementById('dioMode')?.value||'skip';
+  try{
+    const text=await fi.files[0].text();const data=JSON.parse(text);
+    const tables=['products','api_config','tryon_records','tryon_photos'];
+    let totalImported=0,totalSkipped=0,totalErrors=0;
+    const resultEl=document.getElementById('dioResult');
+    for(const t of tables){
+      if(!data[t]||!data[t].length)continue;
+      // Get existing for dedup
+      let existing=new Set();if(mode!=='duplicate'&&t==='products'){const er=await sq('products',{s:'id,product_code',l:9999});for(const e of(er.data||[]))if(e.product_code)existing.add(e.product_code)}
+      for(const item of data[t]){
+        // Clean: remove id to let DB generate new one
+        const clean={...item};delete clean.id;delete clean.created_at;delete clean.updated_at;
+        // Dedup for products by product_code
+        if(t==='products'&&clean.product_code&&existing.has(clean.product_code)){
+          if(mode==='skip'){totalSkipped++;continue}
+          if(mode==='replace'){await sm('products','DELETE',{},{c:'product_code',v:clean.product_code})}
+        }
+        const r=await sm(t,'POST',clean);if(r.error)totalErrors++;else totalImported++;
+      }
+      if(resultEl)resultEl.innerHTML='<div class="text-sm text-gray-500">处理 '+t+' 中...</div>';
+    }
+    if(resultEl)resultEl.innerHTML='<div class="text-sm"><p class="text-green-600">✅ 新增: '+totalImported+'</p>'+(totalSkipped?'<p class="text-yellow-600">⏭️ 跳过: '+totalSkipped+'</p>':'')+(totalErrors?'<p class="text-red-600">❌ 错误: '+totalErrors+'</p>':'')+'</div>';
+    toast('导入完成');
+  }catch(e){toast('导入失败: '+e.message,'e')}
+};
+// Batch parse youzan links
+window.batchParseYouzan=async function(){
+  toast('正在扫描有赞链接...','i');
+  const r=await sq('products',{s:'id,name,youzan_url,jump_url',l:9999});const prods=r.data||[];
+  let parsed=0,failed=0;
+  const resultEl=document.getElementById('yzBatchResult');
+  let h='<div class="text-sm space-y-2">';
+  for(const p of prods){
+    if(!p.youzan_url)continue;
+    const res=parseYouzanLink(p.youzan_url);
+    if(res){
+      const newJump='weixin://dl/business/?appid=wxceee2295851cb729&path='+encodeURIComponent(res.path);
+      if(p.jump_url!==newJump){await sm('products','PATCH',{jump_url:newJump},{c:'id',v:p.id});h+='<p class="text-green-600">✅ '+esc(p.name)+': '+res.path+'</p>';parsed++}
+      else h+='<p class="text-gray-400">⏭️ '+esc(p.name)+': 已存在</p>';
+    }else{h+='<p class="text-red-500">❌ '+esc(p.name)+': 无法解析</p>';failed++}
+  }
+  h+='</div>';
+  if(resultEl)resultEl.innerHTML=h;
+  toast('解析完成: '+parsed+' 成功, '+failed+' 失败');
+};
+
+/* ============ HASH ROUTING + INIT ============ */
+window.onhashchange=function(){const h=window.location.hash.slice(1);if(h&&h!==pg){pg=h;render()}};
+render();
+
+/* ============ SYSTEM MESSAGES (站内信) ============ */
+// Stored in api_config with key 'system_messages_json' as JSON array
+async function lSM(){
+  const r=await sq('api_config',{s:'*',w:{config_key:'system_messages_json'},l:1});
+  let msgs=[];if(r.data&&r.data.length){try{msgs=JSON.parse(r.data[0].config_value)}catch(e){msgs=[]}}
+  ST.sm=msgs;
+}
+function rSM(){
+  const msgs=ST.sm||[];
+  let h='<div><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">站内信</h2><button onclick="openSMModal(null)" class="bp">+ 新建消息</button></div>';
+  if(msgs.length){
+    h+='<div class="space-y-3">';
+    for(const m of msgs){
+      const typeMap={info:'bdg-b',success:'bdg-g',warning:'bdg-w',error:'bdg-r'};
+      const typeLabels={info:'通知',success:'成功',warning:'警告',error:'错误'};
+      h+='<div class="cd p-5"><div class="flex justify-between items-start"><div><span class="bdg '+(typeMap[m.type]||'bdg-b')+' mr-3">'+(typeLabels[m.type]||m.type)+'</span><span class="font-medium">'+esc(m.title)+'</span>'+(m.category?'<span class="badge bdg-y ml-2">'+esc(m.category)+'</span>':'')+'</div><div class="flex gap-2"><button onclick="openSMModal('+esc(JSON.stringify(m))+')" class="text-blue-500 hover:underline text-sm">编辑</button><button onclick="delSM('+msgs.indexOf(m)+')" class="text-red-500 hover:underline text-sm ml-2">删除</button></div></div><p class="text-sm text-gray-500 mt-2">'+esc(m.content)+'</p><div class="text-xs text-gray-400 mt-2">'+fmtTF(m.created_at)+' '+(m.is_read?'✅':'🔵')+'</div></div>';
+    }
+    h+='</div>';
+  }else h+='<div class="text-gray-400 text-center py-8">暂无站内信</div>';
+  h+='</div>'+rSMModal();
+  return h;
+}
+function rSMModal(){
+  return'<div class="mo" id="smModal" style="display:none"><div class="mb" style="max-width:550px"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold" id="smTitle">新建站内信</h3><button onclick="closeSMModal()" class="text-2xl text-gray-400">&times;</button></div><div class="space-y-4"><div class="flex gap-3"><div class="flex-1"><label class="fl">类型</label><select id="smType" class="fi"><option value="info">通知</option><option value="success">成功</option><option value="warning">警告</option><option value="error">错误</option></select></div><div class="flex-1"><label class="fl">分类</label><select id="smCat" class="fi"><option value="">无</option><option value="api_config">API配置</option><option value="product">商品</option><option value="system">系统</option><option value="user">用户</option></select></div></div><div><label class="fl">标题</label><input id="smTi" class="fi" placeholder="消息标题"></div><div><label class="fl">内容</label><textarea id="smContent" class="fi" rows="4" placeholder="消息内容"></textarea></div><input type="hidden" id="smIdx" value="-1"><div class="flex justify-end gap-3"><button onclick="closeSMModal()" class="bs">取消</button><button onclick="saveSM()" class="bp">保存</button></div></div></div></div>';
+}
+function bSM(){}
+let _smIdx=-1;
+window.openSMModal=function(m){
+  const modal=document.getElementById('smModal');if(!modal){document.body.insertAdjacentHTML('beforeend',rSMModal());return}
+  modal.style.display='flex';
+  if(m){_smIdx=(ST.sm||[]).indexOf(m);document.getElementById('smTitle').textContent='编辑站内信';document.getElementById('smType').value=m.type||'info';document.getElementById('smCat').value=m.category||'';document.getElementById('smTi').value=m.title||'';document.getElementById('smContent').value=m.content||'';document.getElementById('smIdx').value=_smIdx}
+  else{_smIdx=-1;document.getElementById('smTitle').textContent='新建站内信';document.getElementById('smType').value='info';document.getElementById('smCat').value='';document.getElementById('smTi').value='';document.getElementById('smContent').value='';document.getElementById('smIdx').value='-1'}
+};
+window.closeSMModal=function(){const m=document.getElementById('smModal');if(m)m.style.display='none'};
+window.saveSM=async function(){
+  const idx=parseInt(document.getElementById('smIdx')?.value||'-1');
+  const msg={type:document.getElementById('smType')?.value||'info',category:document.getElementById('smCat')?.value||'',title:document.getElementById('smTi')?.value?.trim()||'',content:document.getElementById('smContent')?.value?.trim()||'',is_read:false,created_at:new Date().toISOString()};
+  if(!msg.title){toast('请输入标题','e');return}
+  const msgs=[...(ST.sm||[])];
+  if(idx>=0&&idx<msgs.length){msgs[idx]={...(msgs[idx]||{}),type:msg.type,category:msg.category,title:msg.title,content:msg.content}}
+  else msgs.unshift(msg);
+  const val=JSON.stringify(msgs);
+  const existing=await sq('api_config',{s:'id',w:{config_key:'system_messages_json'},l:1});
+  let res;
+  if(existing.data&&existing.data.length)res=await sm('api_config','PATCH',{config_value:val},{c:'config_key',v:'system_messages_json'});
+  else res=await sm('api_config','POST',{config_key:'system_messages_json',config_value:val,description:'站内信数据'});
+  if(res.error){toast('保存失败','e');return}
+  toast('已保存');ST.sm=msgs;closeSMModal();document.getElementById('mc').innerHTML=rSM();bSM();
+};
+window.delSM=async function(idx){
+  const ok=await confirm2('确认删除此消息？');if(!ok)return;
+  const msgs=[...(ST.sm||[])];msgs.splice(idx,1);
+  const val=JSON.stringify(msgs);
+  const existing=await sq('api_config',{s:'id',w:{config_key:'system_messages_json'},l:1});
+  if(existing.data&&existing.data.length)await sm('api_config','PATCH',{config_value:val},{c:'config_key',v:'system_messages_json'});
+  ST.sm=msgs;toast('已删除');document.getElementById('mc').innerHTML=rSM();bSM();
+};
+
+/* ============ ENHANCED USERS (with user_info table) ============ */
+async function lUser2(){
+  const off=(U.p-1)*U.ps;
+  // Try user_info table first
+  let userInfoRes=await sq('user_info',{s:'*',od:'created_at.desc',l:U.ps,o:off});
+  if(userInfoRes.data&&userInfoRes.data.length){
+    // daily_quota is already in user_info row, no extra query needed
+    // Get today's tryon record counts per user
+    const today=new Date().toISOString().split('T')[0];
+    const recRes=await sq('tryon_records',{s:'user_id,created_at',l:9999});
+    const recMap={};for(const r of(recRes.data||[])){if(!r.user_id)continue;if(!recMap[r.user_id])recMap[r.user_id]=0;const d=(r.created_at||'').split('T')[0];if(d===today)recMap[r.user_id]++}
+    // Get total record counts per user
+    const totalRes=await sq('tryon_records',{s:'user_id',l:9999});
+    const totalMap={};for(const r of(totalRes.data||[])){if(!r.user_id)continue;if(!totalMap[r.user_id])totalMap[r.user_id]=0;totalMap[r.user_id]++}
+    U.l=userInfoRes.data.map(function(u){
+      const dq=u.daily_quota!==null&&u.daily_quota!==undefined?parseInt(u.daily_quota):10;
+      const used=recMap[u.user_id]||0;
+      return{
+        user_id:u.user_id,nickname:u.nickname||'',avatar_url:u.avatar_url||'',
+        wechat_id:u.openid||'',used_count:used,daily_quota:dq,
+        remaining:Math.max(0,dq-used),
+        total_records:totalMap[u.user_id]||0,
+        is_authorized:!!(u.nickname&&u.avatar_url),
+        created_at:u.created_at
+      };
+    });
+    U.t=userInfoRes.count||U.l.length;
+    U._source='user_info';
+  }else{
+    // Fallback to tryon_records aggregation (original behavior)
+    await lUser();
+    U._source='tryon_records';
+  }
+  if(uS){U.l=U.l.filter(function(u){return (u.user_id||'').toLowerCase().includes(uS.toLowerCase())});U.t=U.l.length}
+}
+function rUser2(){
+  const tp=Math.ceil(U.t/U.ps)||1;const source=U._source;
+  let h='<div><h2 class="text-xl font-bold mb-6">用户管理 ('+U.t+')</h2>';
+  h+='<div class="cd p-4 mb-4 flex gap-3 items-center"><input type="text" id="uSe" class="si2" placeholder="搜索用户ID/昵称..." value="'+esc(uS)+'"><button onclick="applyUF2()" class="bp">搜索</button><button onclick="clearUF2()" class="bs">重置</button>'+(source==='user_info'?'<span class="text-xs text-gray-400 ml-2">数据来源: user_info</span>':'<span class="text-xs text-gray-400 ml-2">数据来源: tryon_records</span>')+'</div>';
+  // Stats cards
+  if(source==='user_info'){
+    const authorized=U.l.filter(function(u){return u.is_authorized}).length;
+    h+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'+sC_mini('总用户',U.t)+sC_mini('已授权',authorized)+sC_mini('未授权',U.t-authorized)+sC_mini('总生成次数',U.l.reduce(function(s,u){return s+(u.total_records||0)},0))+'</div>';
+  }
+  h+='<div class="cd overflow-hidden"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b bg-gray-50">';
+  if(source==='user_info'){
+    h+='<th class="p-4">用户</th><th class="p-4">昵称</th><th class="p-4">配额(今日)</th><th class="p-4">总计</th><th class="p-4">授权</th><th class="p-4">注册时间</th><th class="p-4 text-right">操作</th>';
+  }else{
+    h+='<th class="p-4">用户ID</th><th class="p-4">试戴次数</th><th class="p-4">每日配额</th><th class="p-4">最后活跃</th><th class="p-4 text-right">操作</th>';
+  }
+  h+='</tr></thead><tbody>';
+  if(U.l.length){
+    if(source==='user_info'){
+      for(const u of U.l){
+        h+='<tr class="border-b border-gray-50 table-row">';
+        h+='<td class="p-4"><div class="flex items-center gap-3">'+(u.avatar_url?'<img src="'+u.avatar_url+'" class="w-10 h-10 rounded-full object-cover" onerror="this.style.display=\'none\'">':'<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">无</div>')+'<span class="font-mono text-xs">'+(u.user_id||'').slice(0,16)+'...</span></div></td>';
+        h+='<td class="p-4">'+esc(u.nickname||'-')+'</td>';
+        h+='<td class="p-4"><span class="text-sm">'+u.used_count+'/'+(u.daily_quota||10)+'</span><div class="text-xs text-gray-400">剩余'+u.remaining+'次</div></td>';
+        h+='<td class="p-4">'+u.total_records+'</td>';
+        h+='<td class="p-4">'+(u.is_authorized?'<span class="bdg bdg-g">已授权</span>':'<span class="bdg bdg-y">未授权</span>')+'</td>';
+        h+='<td class="p-4 text-gray-500 text-xs">'+fmtT(u.created_at)+'</td>';
+        h+='<td class="p-4 text-right"><button onclick="editUserQ(\''+esc(u.user_id)+'\','+(u.daily_quota||10)+')" class="text-green-600 hover:underline mr-3 text-sm">编辑配额</button><button onclick="viewUserRec2(\''+esc(u.user_id)+'\')" class="text-blue-500 hover:underline mr-3 text-sm">记录</button><button onclick="delUser2(\''+esc(u.user_id)+'\')" class="text-red-500 hover:underline text-sm">删除</button></td></tr>';
+      }
+    }else{
+      for(const u of U.l){
+        const uid=esc(u.user_id||u.id||'');
+        h+='<tr class="border-b border-gray-50 table-row"><td class="p-4 font-mono text-xs">'+uid+'</td><td class="p-4">'+(u.tryon_count||0)+'</td><td class="p-4 font-semibold text-blue-600">'+(u.daily_quota||10)+'</td><td class="p-4 text-gray-500">'+fmtT(u.last_active||u.created_at)+'</td>';
+        h+='<td class="p-4 text-right"><button onclick="editUserQ(\''+uid+'\','+(u.daily_quota||10)+')" class="text-green-600 hover:underline mr-3">编辑配额</button><button onclick="viewUserRec2(\''+uid+'\')" class="text-blue-500 hover:underline mr-3">查看记录</button><button onclick="delUser2(\''+uid+'\')" class="text-red-500 hover:underline">删除</button></td></tr>';
+      }
+    }
+  }else h+='<tr><td colspan="7" class="p-8 text-center text-gray-400">暂无用户</td></tr>';
+  h+='</tbody></table><div class="p-4 border-t flex justify-between items-center"><span class="text-sm text-gray-500">共'+U.t+'条</span><div class="flex gap-2"><button onclick="U.p='+(U.p-1)+';loadPg()" '+(U.p<=1?'disabled':'')+' class="bs">上一页</button><button onclick="U.p='+(U.p+1)+';loadPg()" '+(U.p>=tp?'disabled':'')+' class="bs">下一页</button></div></div></div></div>';
+  return h;
+}
+function sC_mini(l,v){return'<div class="cd p-4"><p class="text-xs text-gray-500">'+l+'</p><p class="text-xl font-bold">'+v+'</p></div>'}
+function bUser2(){}
+window.applyUF2=async function(){uS=document.getElementById('uSe')?.value||'';U.p=1;await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
+window.clearUF2=async function(){uS='';U.p=1;await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
+window.viewUserRec2=function(uid){pg='records';uS=uid;window.location.hash='records';loadPg()};
+window.delUser2=async function(uid){const ok=await confirm2('确认删除此用户所有数据？包括试戴记录、照片和用户信息。');if(!ok)return;
+  await sm('tryon_photos','DELETE',{},{c:'user_id',v:uid});await sm('tryon_records','DELETE',{},{c:'user_id',v:uid});
+  try{await sm('user_info','DELETE',{},{c:'user_id',v:uid})}catch(e){}
+  try{await sm('users','DELETE',{},{c:'id',v:uid})}catch(e){}
+  toast('用户数据已删除');await lUser2();document.getElementById('mc').innerHTML=rUser2();bUser2()};
+
+/* ============ IMAGE UPLOAD TO OSS (via FC endpoint) ============ */
+const UP_API = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run/api/admin/upload-image';
+
+async function uploadImageToOss(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function() {
+      const base64 = reader.result.split(',')[1] || reader.result;
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      try {
+        const resp = await fetch(UP_API, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-admin-key':'rsny@1234'},
+          body:JSON.stringify({image:base64,ext:ext,folder:'products'})
+        });
+        const data = await resp.json();
+        if(data.code===200) resolve(data.data);
+        else reject(new Error(data.msg||'Upload failed'));
+      } catch(e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Add upload buttons to product images in modal
+function attachUploadButtons() {
+  // Find all image URL inputs in the product modal
+  const imgFields = [
+    {id:'pi1', label:'图片1'},{id:'pi2', label:'图片2'},{id:'pi3', label:'图片3'},
+    {id:'pi4', label:'图片4'},{id:'pi5', label:'图片5'},
+    {id:'ph1', label:'隐藏图1'},{id:'ph2', label:'隐藏图2'},{id:'ph3', label:'隐藏图3'},
+  ];
+  for(const f of imgFields) {
+    const input = document.getElementById(f.id);
+    if(!input) continue;
+    // Remove existing upload button
+    const existing = input.nextElementSibling;
+    if(existing && existing.classList && existing.classList.contains('up-btn')) existing.remove();
+    
+    const btn = document.createElement('button');
+    btn.className = 'up-btn';
+    btn.textContent = '📤';
+    btn.title = '上传到OSS';
+    btn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#3b82f6;color:white;border:none;border-radius:4px;width:28px;height:28px;font-size:14px;cursor:pointer;';
+    btn.onclick = async function(e) {
+      e.preventDefault();
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.onchange = async function() {
+        const file = fileInput.files[0];
+        if(!file) return;
+        btn.textContent = '⏳';
+        btn.disabled = true;
+        try {
+          const result = await uploadImageToOss(file);
+          input.value = result.url;
+          toast(f.label+' 上传成功');
+          // Show preview
+          const preview = document.getElementById(f.id+'_preview');
+          if(preview) preview.src = result.url;
+        } catch(e) {
+          toast('上传失败: '+e.message,'e');
+        }
+        btn.textContent = '📤';
+        btn.disabled = false;
+      };
+      fileInput.click();
+    };
+    // Make input's parent relative
+    if(input.parentElement.style.position !== 'relative') {
+      input.parentElement.style.position = 'relative';
+      input.style.paddingRight = '36px';
+    }
+    input.parentElement.appendChild(btn);
+  }
+}
+
+// Override product modal render to call attachUploadButtons
+const _origBProd = bProd;
+bProd = function() {
+  if(_origBProd) _origBProd();
+  setTimeout(attachUploadButtons, 100);
+};
+
+</script>
+</body></html>
