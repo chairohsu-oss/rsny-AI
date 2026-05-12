@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .config-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>API配置测试页面</h1>
+    
+    <div>
+        <button onclick="testAPI()">测试API连接</button>
+        <button onclick="loadConfig()">加载配置</button>
+        <button onclick="fillInputs()">填充输入框</button>
+    </div>
+
+    <h2>1. API测试结果</h2>
+    <pre id="apiResult">点击"测试API连接"按钮</pre>
+
+    <h2>2. 配置数据</h2>
+    <pre id="configData">等待加载...</pre>
+
+    <h2>3. 输入框测试</h2>
+    
+    <div class="config-item">
+        <label>API地址:</label>
+        <input type="text" id="api_endpoint_input" placeholder="API地址">
+        <div id="api_endpoint_status">状态: 未设置</div>
+    </div>
+
+    <div class="config-item">
+        <label>API Key:</label>
+        <input type="text" id="api_key_input" placeholder="API Key">
+        <div id="api_key_status">状态: 未设置</div>
+    </div>
+
+    <div class="config-item">
+        <label>模型名称:</label>
+        <input type="text" id="model_name_input" placeholder="模型名称">
+        <div id="model_name_status">状态: 未设置</div>
+    </div>
+
+    <div class="config-item">
+        <label>项链提示词:</label>
+        <textarea id="prompt_necklace_input" rows="3" placeholder="项链提示词"></textarea>
+        <div id="prompt_necklace_status">状态: 未设置</div>
+    </div>
+
+    <div class="config-item">
+        <label>戒指提示词:</label>
+        <textarea id="prompt_ring_input" rows="3" placeholder="戒指提示词"></textarea>
+        <div id="prompt_ring_status">状态: 未设置</div>
+    </div>
+
+    <h2>4. 执行日志</h2>
+    <div id="log" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 300px; overflow-y: auto;"></div>
+
+    <script>
+        // === FC3 后端适配 ===
+        const ADMIN_PASSWORD = 'rsny@1234';
+        const _origFetch = window.fetch;
+        const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+        window.fetch = function(url, opts) {
+            if (!opts) opts = {};
+            opts.headers = opts.headers || {};
+            let finalUrl = url;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                finalUrl = FC3_BASE + url;
+                opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+            }
+            return _origFetch(finalUrl, opts);
+        };
+        // 权限检查
+        (function() {
+            if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
+                window.location.href = '/rsny-AI/login.html';
+            }
+        })();
+
+        let configs = [];
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('开始测试API连接...');
+            try {
+                const response = await fetch('/api/admin/api-config');
+                log('API响应状态: ' + response.status);
+                
+                const data = await response.json();
+                log('API返回数据类型: ' + typeof data);
+                log('API返回code: ' + data.code);
+                log('API返回数据条数: ' + (data.data ? data.data.length : 0));
+                
+                document.getElementById('apiResult').textContent = JSON.stringify(data, null, 2);
+                
+                if (data.code === 200 && data.data) {
+                    log('✅ API测试成功');
+                    return data.data;
+                } else {
+                    log('❌ API返回错误: ' + data.msg);
+                    return null;
+                }
+            } catch (error) {
+                log('❌ API测试失败: ' + error.message);
+                document.getElementById('apiResult').textContent = '错误: ' + error.message;
+                return null;
+            }
+        }
+
+        async function loadConfig() {
+            log('===== 开始加载配置 =====');
+            const data = await testAPI();
+            
+            if (!data) {
+                log('❌ 配置加载失败');
+                document.getElementById('configData').textContent = '加载失败';
+                return;
+            }
+
+            configs = data;
+            log('✅ 配置加载成功，共 ' + configs.length + ' 项');
+            
+            // 显示配置数据
+            document.getElementById('configData').textContent = JSON.stringify(configs, null, 2);
+            
+            // 列出所有配置项
+            configs.forEach(config => {
+                log(`配置项: ${config.config_key} = ${config.config_value ? config.config_value.substring(0, 30) + '...' : '空'}`);
+            });
+        }
+
+        function fillInputs() {
+            log('===== 开始填充输入框 =====');
+            
+            if (configs.length === 0) {
+                log('❌ 配置数据为空，请先点击"加载配置"');
+                return;
+            }
+
+            // API配置
+            const apiKeys = ['api_endpoint', 'api_key', 'model_name'];
+            apiKeys.forEach(key => {
+                const config = configs.find(c => c.config_key === key);
+                const inputEl = document.getElementById(`${key}_input`);
+                const statusEl = document.getElementById(`${key}_status`);
+                
+                if (config && inputEl) {
+                    inputEl.value = config.config_value || '';
+                    statusEl.innerHTML = `<span class="success">✅ 已填充: ${config.config_value || '空'}</span>`;
+                    log(`✅ ${key} 已填充: ${config.config_value}`);
+                } else {
+                    statusEl.innerHTML = `<span class="error">❌ 未找到配置</span>`;
+                    log(`❌ ${key} 未找到配置`);
+                }
+            });
+
+            // 提示词配置
+            const promptKeys = ['prompt_necklace', 'prompt_ring', 'prompt_earring', 'prompt_bracelet'];
+            promptKeys.forEach(key => {
+                const config = configs.find(c => c.config_key === key);
+                const inputEl = document.getElementById(`${key}_input`);
+                const statusEl = document.getElementById(`${key}_status`);
+                
+                log(`处理 ${key}: config=${config ? '找到' : '未找到'}, input=${inputEl ? '存在' : '不存在'}`);
+                
+                if (config && inputEl) {
+                    inputEl.value = config.config_value || '';
+                    statusEl.innerHTML = `<span class="success">✅ 已填充: ${config.config_value ? config.config_value.substring(0, 30) + '...' : '空'}</span>`;
+                    log(`✅ ${key} 已填充`);
+                } else {
+                    if (statusEl) {
+                        statusEl.innerHTML = `<span class="error">❌ 未找到配置或输入框</span>`;
+                    }
+                    log(`❌ ${key} 未找到配置`);
+                }
+            });
+
+            log('===== 填充完成 =====');
+        }
+
+        // 页面加载时自动执行
+        window.onload = function() {
+            log('页面加载完成');
+            log('当前时间: ' + new Date().toLocaleString());
+            log('准备就绪，请点击按钮测试');
+        };
+    </script>
+</body>
+</html>

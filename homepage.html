@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页装修 - RSNY 管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-black text-white flex flex-col">
+            <div class="p-6">
+                <h1 class="text-xl font-bold">RSNY 管理后台</h1>
+            </div>
+
+            <nav class="flex-1 px-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="/admin/" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            📊 概览
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/products" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            🛍️ 商品管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/users" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            👥 用户管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/homepage" class="block px-4 py-2 rounded bg-gray-800">
+                            🏠 首页装修
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/api-config" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            ⚙️ API配置
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="p-4 border-t border-gray-800">
+                <button
+                    onclick="window.location.href='/admin/'"
+                    class="w-full px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition-colors"
+                >
+                    🚪 退出登录
+                </button>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 overflow-auto">
+            <!-- 顶部栏 -->
+            <div class="bg-white shadow-sm p-4">
+                <h2 class="text-xl font-bold text-black">首页装修</h2>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- 宣传海报 -->
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-bold text-black mb-4">宣传海报</h3>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">海报图片URL</label>
+                            <input
+                                type="text"
+                                id="posterImage"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="请输入海报图片URL"
+                            >
+                        </div>
+
+                        <div id="posterPreview" class="w-full h-64 bg-gray-200 rounded mb-4 flex items-center justify-center">
+                            <span class="text-gray-500">海报预览</span>
+                        </div>
+
+                        <button
+                            onclick="previewPoster()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            预览
+                        </button>
+                    </div>
+
+                    <!-- 推荐商品 -->
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-bold text-black mb-4">推荐商品</h3>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">推荐商品ID列表（用逗号分隔）</label>
+                            <textarea
+                                id="featuredProducts"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md h-20"
+                                placeholder="请输入商品ID，多个ID用逗号分隔"
+                            ></textarea>
+                        </div>
+
+                        <div class="text-sm text-gray-600 mb-4">
+                            提示：从商品管理页面复制商品ID
+                        </div>
+                    </div>
+
+                    <!-- 分类导航图片 -->
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-bold text-black mb-4">分类导航图片</h3>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">耳饰</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="earrings"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">项链</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="necklace"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">戒指</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="ring"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">手链</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="bracelet"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">手镯</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="bangle"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">墨镜</label>
+                                <input
+                                    type="text"
+                                    class="nav-image w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    data-category="sunglasses"
+                                    placeholder="图片URL"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 保存按钮 -->
+                    <div class="flex justify-end">
+                        <button
+                            onclick="saveConfig()"
+                            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                        >
+                            💾 保存配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === FC3 后端适配 ===
+        const ADMIN_PASSWORD = 'rsny@1234';
+        const _origFetch = window.fetch;
+        const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+        window.fetch = function(url, opts) {
+            if (!opts) opts = {};
+            opts.headers = opts.headers || {};
+            let finalUrl = url;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                finalUrl = FC3_BASE + url;
+                opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+            }
+            return _origFetch(finalUrl, opts);
+        };
+        // 权限检查
+        (function() {
+            if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
+                window.location.href = '/rsny-AI/login.html';
+            }
+        })();
+
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin/login.html';
+        }
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/admin/homepage');
+                const result = await response.json();
+
+                if (result.code === 200 && result.data) {
+                    const config = result.data;
+
+                    document.getElementById('posterImage').value = config.poster_image_url || '';
+                    document.getElementById('featuredProducts').value = config.featured_product_ids || '';
+
+                    if (config.poster_image_url) {
+                        previewPoster();
+                    }
+
+                    if (config.navigation_images) {
+                        const navImages = JSON.parse(config.navigation_images);
+                        document.querySelectorAll('.nav-image').forEach(input => {
+                            const category = input.dataset.category;
+                            if (navImages[category]) {
+                                input.value = navImages[category];
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                alert('加载配置失败');
+            }
+        }
+
+        // 预览海报
+        function previewPoster() {
+            const url = document.getElementById('posterImage').value;
+            const preview = document.getElementById('posterPreview');
+
+            if (url) {
+                preview.innerHTML = `<img src="${url}" class="w-full h-full object-cover" alt="海报预览">`;
+            } else {
+                preview.innerHTML = '<span class="text-gray-500">海报预览</span>';
+            }
+        }
+
+        // 保存配置
+        async function saveConfig() {
+            const posterImageUrl = document.getElementById('posterImage').value;
+            const featuredProductIds = document.getElementById('featuredProducts').value;
+
+            const navigationImages = {};
+            document.querySelectorAll('.nav-image').forEach(input => {
+                const category = input.dataset.category;
+                navigationImages[category] = input.value;
+            });
+
+            const config = {
+                id: 'default',
+                posterImageKey: '',
+                posterImageUrl,
+                navigationImages: JSON.stringify(navigationImages),
+                featuredProductIds,
+            };
+
+            try {
+                const response = await fetch('/api/admin/homepage', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config),
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    alert('保存成功');
+                } else {
+                    alert(result.msg || '保存失败');
+                }
+            } catch (error) {
+                alert('保存失败');
+            }
+        }
+
+        // 初始化
+        loadConfig();
+    </script>
+</body>
+</html>

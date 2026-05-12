@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSNY 管理后台</title>
+    <script>
+        (function() {
+            var token = localStorage.getItem('adminToken');
+            if (token === 'rsny@1234') {
+                window.location.href = '/rsny-AI/admin-dashboard-original.html';
+            } else {
+                window.location.href = '/rsny-AI/login.html';
+            }
+        })();
+    </script>
+</head>
+<body><p>跳转中...</p></body>
+</html>

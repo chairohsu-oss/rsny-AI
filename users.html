@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSNY 管理后台 - 用户管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f7fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .header-gradient { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .user-id-cell { font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 12px; word-break: break-all; line-height: 1.4; user-select: all; }
+        .search-input:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+        .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; transition: all 0.2s; }
+        .btn-delete:hover { background: #dc2626; color: white; }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table th { position: sticky; top: 0; background: #f8fafc; z-index: 1; }
+    </style>
+</head>
+<body>
+    <div class="header-gradient text-white py-4 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <a href="/admin/" class="text-white hover:text-gray-300 text-sm">← 返回工作台</a>
+            <h1 class="text-xl font-bold">👤 用户管理</h1>
+        </div>
+        <div class="text-sm text-gray-300" id="userCount">加载中...</div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6" id="statsCards">
+            <div class="stat-card">
+                <div class="text-sm text-gray-500">总用户数</div>
+                <div class="text-2xl font-bold text-gray-800" id="statTotal">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-sm text-gray-500">今日活跃</div>
+                <div class="text-2xl font-bold text-green-600" id="statActive">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-sm text-gray-500">总试戴次数</div>
+                <div class="text-2xl font-bold text-blue-600" id="statRecords">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-sm text-gray-500">平均试戴/人</div>
+                <div class="text-2xl font-bold text-purple-600" id="statAvg">-</div>
+            </div>
+        </div>
+
+        <!-- 搜索栏 -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="flex gap-3 items-center">
+                <div class="flex-1 relative">
+                    <input type="text" id="searchInput" placeholder="输入用户ID或昵称搜索..."
+                        class="search-input w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
+                <button onclick="searchUsers()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium whitespace-nowrap">
+                    🔍 查询
+                </button>
+                <button onclick="resetSearch()" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm whitespace-nowrap">
+                    重置
+                </button>
+            </div>
+            <div id="searchHint" class="text-xs text-gray-400 mt-2 hidden"></div>
+        </div>
+
+        <!-- 用户列表 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b bg-gray-50">
+                            <th class="px-4 py-3 text-left font-medium text-gray-600">用户ID / 微信ID</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-600">昵称</th>
+                            <th class="px-4 py-3 text-center font-medium text-gray-600">今日已用</th>
+                            <th class="px-4 py-3 text-center font-medium text-gray-600">总试戴</th>
+                            <th class="px-4 py-3 text-center font-medium text-gray-600">剩余次数</th>
+                            <th class="px-4 py-3 text-left font-medium text-gray-600">最后活跃</th>
+                            <th class="px-4 py-3 text-center font-medium text-gray-600">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div id="deleteModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="bg-red-50 px-6 py-4 border-b border-red-100">
+                <h3 class="text-lg font-bold text-red-700">⚠️ 确认删除用户</h3>
+            </div>
+            <div class="px-6 py-5">
+                <p class="text-sm text-gray-700 mb-3">此操作<strong class="text-red-600">不可恢复</strong>，该用户的所有数据将被永久删除：</p>
+                <div class="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-1 mb-4">
+                    <div>• 用户基本信息与头像</div>
+                    <div>• 所有AI试戴记录</div>
+                    <div>• 所有上传照片</div>
+                    <div>• 配额与授权信息</div>
+                </div>
+                <div class="bg-gray-100 rounded px-3 py-2 text-xs font-mono text-gray-500 break-all" id="deleteUserId"></div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeDeleteModal()" class="px-5 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">取消</button>
+                <button onclick="doDeleteUser()" class="px-5 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === FC3 后端适配 ===
+        const ADMIN_PASSWORD = 'rsny@1234';
+        const _origFetch = window.fetch;
+        const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+        window.fetch = function(url, opts) {
+            if (!opts) opts = {};
+            opts.headers = opts.headers || {};
+            let finalUrl = url;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                finalUrl = FC3_BASE + url;
+                opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+            }
+            return _origFetch(finalUrl, opts);
+        };
+        // 权限检查
+        (function() {
+            if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
+                window.location.href = '/rsny-AI/login.html';
+            }
+        })();
+
+        const API_BASE = '/api/admin';
+        let allUsers = [];
+        let filteredUsers = [];
+        let deletingUserId = null;
+
+        // 日期格式化
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const h = String(d.getHours()).padStart(2, '0');
+                const min = String(d.getMinutes()).padStart(2, '0');
+                const sec = String(d.getSeconds()).padStart(2, '0');
+                return `${y}-${m}-${day} ${h}:${min}:${sec}`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // 相对时间
+        function timeAgo(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const d = new Date(dateStr);
+                const now = new Date();
+                const diff = Math.floor((now - d) / 1000);
+                if (diff < 60) return '刚刚';
+                if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+                if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+                if (diff < 2592000) return Math.floor(diff / 86400) + '天前';
+                return formatDate(dateStr);
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // 加载用户列表
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/users`);
+                const result = await res.json();
+                allUsers = result.data || [];
+                filteredUsers = [...allUsers];
+                renderUsers();
+                updateStats();
+            } catch (e) {
+                document.getElementById('userTableBody').innerHTML = 
+                    `<tr><td colspan="7" class="px-4 py-8 text-center text-red-400">加载失败: ${e.message}</td></tr>`;
+            }
+        }
+
+        // 搜索
+        function searchUsers() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!keyword) {
+                filteredUsers = [...allUsers];
+                document.getElementById('searchHint').classList.add('hidden');
+            } else {
+                filteredUsers = allUsers.filter(u => 
+                    (u.user_id || '').toLowerCase().includes(keyword) ||
+                    (u.nickname || '').toLowerCase().includes(keyword) ||
+                    (u.wechat_id || '').toLowerCase().includes(keyword)
+                );
+                document.getElementById('searchHint').textContent = `找到 ${filteredUsers.length} 个匹配用户`;
+                document.getElementById('searchHint').classList.remove('hidden');
+            }
+            renderUsers();
+        }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            filteredUsers = [...allUsers];
+            document.getElementById('searchHint').classList.add('hidden');
+            renderUsers();
+        }
+
+        // 回车搜索
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchUsers();
+            });
+        });
+
+        // 统计
+        function updateStats() {
+            const total = allUsers.length;
+            const today = new Date().toISOString().split('T')[0];
+            const activeToday = allUsers.filter(u => (u.last_active || '').startsWith(today)).length;
+            const totalRecords = allUsers.reduce((sum, u) => sum + (u.total_records || 0), 0);
+            const avg = total > 0 ? (totalRecords / total).toFixed(1) : '0';
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statActive').textContent = activeToday;
+            document.getElementById('statRecords').textContent = totalRecords;
+            document.getElementById('statAvg').textContent = avg;
+            document.getElementById('userCount').textContent = `共 ${total} 个用户`;
+        }
+
+        // 渲染用户列表
+        function renderUsers() {
+            const tbody = document.getElementById('userTableBody');
+            if (filteredUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">暂无用户数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredUsers.map(user => {
+                const userId = user.user_id || '-';
+                const nickname = user.nickname || '未设置';
+                const usedCount = user.used_count || 0;
+                const maxCount = user.max_count || 10;
+                const remaining = user.remaining != null ? user.remaining : Math.max(0, maxCount - usedCount);
+                const totalRecords = user.total_records || 0;
+                const lastActive = user.last_active || user.created_at;
+
+                // 合并用户ID和微信ID
+                let idDisplay = '';
+                if (user.wechat_id && user.wechat_id === user.user_id) {
+                    idDisplay = `<span class="user-id-cell" title="双击复制">${userId}</span>`;
+                } else {
+                    idDisplay = `<span class="user-id-cell" title="双击复制">${userId}</span>`;
+                    if (user.wechat_id) {
+                        idDisplay += `<br><span class="text-xs text-gray-400">微信: ${user.wechat_id}</span>`;
+                    }
+                }
+
+                const remainingColor = remaining <= 0 ? 'text-red-500 font-bold' : remaining <= 3 ? 'text-orange-500' : 'text-green-600';
+
+                return `<tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3">${idDisplay}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            ${user.avatar_url ? `<img src="${user.avatar_url}" class="w-6 h-6 rounded-full" onerror="this.style.display='none'">` : ''}
+                            <span class="font-medium">${nickname}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">${usedCount} / ${maxCount}</td>
+                    <td class="px-4 py-3 text-center font-medium">${totalRecords}</td>
+                    <td class="px-4 py-3 text-center ${remainingColor}">${remaining}</td>
+                    <td class="px-4 py-3">
+                        <div class="text-xs text-gray-600">${formatDate(lastActive)}</div>
+                        <div class="text-xs text-gray-400">${timeAgo(lastActive)}</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="confirmDeleteUser('${userId}')" class="btn-delete px-3 py-1 rounded text-xs font-medium">删除</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // 删除用户
+        function confirmDeleteUser(userId) {
+            deletingUserId = userId;
+            document.getElementById('deleteUserId').textContent = userId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deletingUserId = null;
+        }
+
+        async function doDeleteUser() {
+            if (!deletingUserId) return;
+            try {
+                const res = await fetch(`${API_BASE}/users/${encodeURIComponent(deletingUserId)}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.code === 200) {
+                    alert('用户已删除');
+                    closeDeleteModal();
+                    loadUsers();
+                } else {
+                    alert('删除失败: ' + (result.msg || '未知错误'));
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        // 初始化
+        loadUsers();
+    </script>
+</body>
+</html>

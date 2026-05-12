@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 - RSNY 管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .upload-box {
+            transition: all 0.2s ease;
+        }
+        .upload-box:hover {
+            border-color: #3b82f6;
+            background-color: #f0f9ff;
+        }
+        .upload-box.has-image {
+            border-style: solid;
+            border-color: #10b981;
+        }
+        .url-text {
+            word-break: break-all;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+        .copy-btn {
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+        .uploading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-black text-white flex flex-col">
+            <div class="p-6">
+                <h1 class="text-xl font-bold">RSNY 管理后台</h1>
+            </div>
+
+            <nav class="flex-1 px-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="/admin/" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            📊 概览
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/products" class="block px-4 py-2 rounded bg-gray-800">
+                            🛍️ 商品管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/users" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            👥 用户管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/homepage" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            🏠 首页装修
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/admin/api-config" class="block px-4 py-2 rounded hover:bg-gray-800 transition-colors">
+                            ⚙️ API配置
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="p-4 border-t border-gray-800">
+                <button
+                    onclick="window.location.href='/admin/'"
+                    class="w-full px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition-colors"
+                >
+                    🚪 退出登录
+                </button>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 overflow-auto">
+            <!-- 顶部栏 -->
+            <div class="bg-white shadow-sm p-4">
+                <h2 class="text-xl font-bold text-black">商品管理</h2>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="p-6">
+                <!-- 操作栏 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <select
+                            id="categoryFilter"
+                            class="px-3 py-2 border border-gray-300 rounded-md"
+                            onchange="loadProducts()"
+                        >
+                            <option value="">所有分类</option>
+                            <option value="earring">耳饰</option>
+                            <option value="necklace">项链</option>
+                            <option value="ring">戒指</option>
+                            <option value="bracelet">手链</option>
+                            <option value="bangle">手镯</option>
+                            <option value="sunglasses">墨镜</option>
+                            <option value="bag">包袋</option>
+                            <option value="hat">帽子</option>
+                            <option value="belt">腰带</option>
+                            <option value="hair_accessory">发饰</option>
+                        </select>
+
+                        <button
+                            onclick="showAddModal()"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            ➕ 新增商品
+                        </button>
+
+                        <button
+                            onclick="exportExcel()"
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                            📥 导出Excel
+                        </button>
+
+                        <!-- 批量操作按钮 -->
+                        <div id="batchActions" class="flex gap-2 hidden">
+                            <button
+                                onclick="batchUpdateStatus(true)"
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                            >
+                                ✅ 批量上架
+                            </button>
+                            <button
+                                onclick="batchUpdateStatus(false)"
+                                class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
+                            >
+                                ⏸️ 批量下架
+                            </button>
+                            <button
+                                onclick="batchDelete()"
+                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                            >
+                                🗑️ 批量删除
+                            </button>
+                            <span id="selectedCount" class="px-3 py-2 text-gray-600 text-sm"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商品列表 -->
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 w-10">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-4 h-4 cursor-pointer">
+                                </th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">图片</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">商品编码</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">名称</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">分类</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">价格</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">状态</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList" class="divide-y divide-gray-200">
+                            <!-- 动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑商品弹窗 -->
+    <div id="productModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-black" id="modalTitle">新增商品</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+
+            <div class="space-y-5">
+                <!-- 基本信息 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">商品名称 *</label>
+                        <input
+                            type="text"
+                            id="productName"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="请输入商品名称"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分类 *</label>
+                        <select
+                            id="productCategory"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                            <option value="earring">耳饰</option>
+                            <option value="necklace">项链</option>
+                            <option value="ring">戒指</option>
+                            <option value="bracelet">手链</option>
+                            <option value="bangle">手镯</option>
+                            <option value="sunglasses">墨镜</option>
+                            <option value="bag">包袋</option>
+                            <option value="hat">帽子</option>
+                            <option value="belt">腰带</option>
+                            <option value="hair_accessory">发饰</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">价格 *</label>
+                        <input
+                            type="number"
+                            id="productPrice"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="请输入价格"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">排序权重</label>
+                        <input
+                            type="number"
+                            id="productSortOrder"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="数字越大越靠前"
+                            value="0"
+                        >
+                    </div>
+                </div>
+
+                <!-- 图片上传区域 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">商品图片（主图 + 详情图）</label>
+                    <p class="text-xs text-gray-500 mb-3">第一张为主图，用于商品列表展示；其余为详情图，展示在商品详情页</p>
+                    <div class="flex flex-wrap gap-4" id="imageUploadArea">
+                        <!-- 主图 -->
+                        <div class="flex flex-col items-center">
+                            <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
+                                 id="uploadBox-0" onclick="triggerUpload(0)">
+                                <input type="file" id="fileInput-0" accept="image/*" class="hidden" onchange="handleFileSelect(event, 0)">
+                                <div id="placeholder-0" class="text-center">
+                                    <div class="text-3xl text-gray-300 mb-1">+</div>
+                                    <div class="text-xs text-gray-400">主图</div>
+                                </div>
+                                <img id="preview-0" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div id="loading-0" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <div class="text-xs text-blue-500">上传中...</div>
+                                </div>
+                            </div>
+                            <div id="urlContainer-0" class="w-32 mt-2 hidden">
+                                <div class="url-text text-gray-500 bg-gray-50 p-1 rounded" id="urlText-0"></div>
+                                <button class="copy-btn text-blue-500 hover:text-blue-700 mt-1" onclick="copyUrl(0)">复制URL</button>
+                            </div>
+                            <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-0" onclick="removeImage(event, 0)">删除</div>
+                        </div>
+
+                        <!-- 详情图 1-4 -->
+                        <div class="flex flex-col items-center">
+                            <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
+                                 id="uploadBox-1" onclick="triggerUpload(1)">
+                                <input type="file" id="fileInput-1" accept="image/*" class="hidden" onchange="handleFileSelect(event, 1)">
+                                <div id="placeholder-1" class="text-center">
+                                    <div class="text-3xl text-gray-300 mb-1">+</div>
+                                    <div class="text-xs text-gray-400">详情图1</div>
+                                </div>
+                                <img id="preview-1" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div id="loading-1" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <div class="text-xs text-blue-500">上传中...</div>
+                                </div>
+                            </div>
+                            <div id="urlContainer-1" class="w-32 mt-2 hidden">
+                                <div class="url-text text-gray-500 bg-gray-50 p-1 rounded" id="urlText-1"></div>
+                                <button class="copy-btn text-blue-500 hover:text-blue-700 mt-1" onclick="copyUrl(1)">复制URL</button>
+                            </div>
+                            <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-1" onclick="removeImage(event, 1)">删除</div>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
+                                 id="uploadBox-2" onclick="triggerUpload(2)">
+                                <input type="file" id="fileInput-2" accept="image/*" class="hidden" onchange="handleFileSelect(event, 2)">
+                                <div id="placeholder-2" class="text-center">
+                                    <div class="text-3xl text-gray-300 mb-1">+</div>
+                                    <div class="text-xs text-gray-400">详情图2</div>
+                                </div>
+                                <img id="preview-2" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div id="loading-2" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <div class="text-xs text-blue-500">上传中...</div>
+                                </div>
+                            </div>
+                            <div id="urlContainer-2" class="w-32 mt-2 hidden">
+                                <div class="url-text text-gray-500 bg-gray-50 p-1 rounded" id="urlText-2"></div>
+                                <button class="copy-btn text-blue-500 hover:text-blue-700 mt-1" onclick="copyUrl(2)">复制URL</button>
+                            </div>
+                            <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-2" onclick="removeImage(event, 2)">删除</div>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
+                                 id="uploadBox-3" onclick="triggerUpload(3)">
+                                <input type="file" id="fileInput-3" accept="image/*" class="hidden" onchange="handleFileSelect(event, 3)">
+                                <div id="placeholder-3" class="text-center">
+                                    <div class="text-3xl text-gray-300 mb-1">+</div>
+                                    <div class="text-xs text-gray-400">详情图3</div>
+                                </div>
+                                <img id="preview-3" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div id="loading-3" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <div class="text-xs text-blue-500">上传中...</div>
+                                </div>
+                            </div>
+                            <div id="urlContainer-3" class="w-32 mt-2 hidden">
+                                <div class="url-text text-gray-500 bg-gray-50 p-1 rounded" id="urlText-3"></div>
+                                <button class="copy-btn text-blue-500 hover:text-blue-700 mt-1" onclick="copyUrl(3)">复制URL</button>
+                            </div>
+                            <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-3" onclick="removeImage(event, 3)">删除</div>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
+                                 id="uploadBox-4" onclick="triggerUpload(4)">
+                                <input type="file" id="fileInput-4" accept="image/*" class="hidden" onchange="handleFileSelect(event, 4)">
+                                <div id="placeholder-4" class="text-center">
+                                    <div class="text-3xl text-gray-300 mb-1">+</div>
+                                    <div class="text-xs text-gray-400">详情图4</div>
+                                </div>
+                                <img id="preview-4" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <div id="loading-4" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                                    <div class="text-xs text-blue-500">上传中...</div>
+                                </div>
+                            </div>
+                            <div id="urlContainer-4" class="w-32 mt-2 hidden">
+                                <div class="url-text text-gray-500 bg-gray-50 p-1 rounded" id="urlText-4"></div>
+                                <button class="copy-btn text-blue-500 hover:text-blue-700 mt-1" onclick="copyUrl(4)">复制URL</button>
+                            </div>
+                            <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-4" onclick="removeImage(event, 4)">删除</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 隐藏图片URL -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">隐藏图片URL（用于AI生图）</label>
+                    <input
+                        type="text"
+                        id="hiddenImage"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="此图片不在前端展示，仅用于AI试戴生成"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">可手动输入URL或上传后复制粘贴</p>
+                </div>
+
+                <!-- 跳转小程序配置 -->
+                <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">跳转小程序</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">目标小程序 AppID</label>
+                            <input
+                                type="text"
+                                id="jumpAppId"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="如：wxd9156a1911411e22"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">小程序内路径</label>
+                            <input
+                                type="text"
+                                id="jumpUrl"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="如：packages/goods/detail/index?alias=xxx"
+                            >
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">填写 AppID 后将跳转到对应小程序；不填 AppID 仅填路径则在本小程序内跳转</p>
+                </div>
+
+                <!-- 有赞信息 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">有赞商品URL</label>
+                        <input
+                            type="text"
+                            id="youzanUrl"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="请输入有赞商品链接"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">有赞商品ID</label>
+                        <input
+                            type="text"
+                            id="youzanId"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="请输入有赞商品ID"
+                        >
+                    </div>
+                </div>
+
+                <!-- 商品描述 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">商品描述</label>
+                    <textarea
+                        id="productDescription"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md h-20"
+                        placeholder="请输入商品描述"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-6">
+                <button
+                    onclick="closeModal()"
+                    class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
+                >
+                    取消
+                </button>
+                <button
+                    onclick="saveProduct()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                    保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === FC3 后端适配 ===
+        const ADMIN_PASSWORD = 'rsny@1234';
+        const _origFetch = window.fetch;
+        const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+        window.fetch = function(url, opts) {
+            if (!opts) opts = {};
+            opts.headers = opts.headers || {};
+            let finalUrl = url;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                finalUrl = FC3_BASE + url;
+                opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+            }
+            return _origFetch(finalUrl, opts);
+        };
+        // 权限检查
+        (function() {
+            if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
+                window.location.href = '/rsny-AI/login.html';
+            }
+        })();
+
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin/login.html';
+        }
+
+        let currentEditId = null;
+        let uploadedImages = ['', '', '', '', '']; // 存储上传的图片URL
+
+        // 触发文件选择
+        function triggerUpload(index) {
+            document.getElementById(`fileInput-${index}`).click();
+        }
+
+        // 处理文件选择
+        async function handleFileSelect(event, index) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 显示loading
+            document.getElementById(`loading-${index}`).classList.remove('hidden');
+            document.getElementById(`uploadBox-${index}`).classList.add('uploading');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200 && result.data) {
+                    const url = result.data.url;
+                    uploadedImages[index] = url;
+
+                    // 显示预览
+                    const preview = document.getElementById(`preview-${index}`);
+                    preview.src = url;
+                    preview.classList.remove('hidden');
+                    document.getElementById(`placeholder-${index}`).classList.add('hidden');
+
+                    // 显示URL
+                    const urlContainer = document.getElementById(`urlContainer-${index}`);
+                    const urlText = document.getElementById(`urlText-${index}`);
+                    urlText.textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
+                    urlContainer.classList.remove('hidden');
+
+                    // 显示删除按钮
+                    document.getElementById(`removeBtn-${index}`).classList.remove('hidden');
+
+                    // 更新上传框样式
+                    document.getElementById(`uploadBox-${index}`).classList.add('has-image');
+                } else {
+                    alert('上传失败：' + (result.msg || '未知错误'));
+                }
+            } catch (error) {
+                console.error('上传错误:', error);
+                alert('上传失败，请重试');
+            } finally {
+                // 隐藏loading
+                document.getElementById(`loading-${index}`).classList.add('hidden');
+                document.getElementById(`uploadBox-${index}`).classList.remove('uploading');
+            }
+        }
+
+        // 删除图片
+        function removeImage(event, index) {
+            event.stopPropagation();
+            uploadedImages[index] = '';
+
+            // 重置预览
+            const preview = document.getElementById(`preview-${index}`);
+            preview.src = '';
+            preview.classList.add('hidden');
+            document.getElementById(`placeholder-${index}`).classList.remove('hidden');
+
+            // 隐藏URL和删除按钮
+            document.getElementById(`urlContainer-${index}`).classList.add('hidden');
+            document.getElementById(`removeBtn-${index}`).classList.add('hidden');
+
+            // 重置样式
+            document.getElementById(`uploadBox-${index}`).classList.remove('has-image');
+
+            // 清空文件输入
+            document.getElementById(`fileInput-${index}`).value = '';
+        }
+
+        // 复制URL
+        function copyUrl(index) {
+            const url = uploadedImages[index];
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('URL已复制到剪贴板');
+                }).catch(() => {
+                    // 降级方案
+                    const input = document.createElement('input');
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                    alert('URL已复制到剪贴板');
+                });
+            }
+        }
+
+        // 加载商品列表
+        async function loadProducts() {
+            const category = document.getElementById('categoryFilter').value;
+            const url = category
+                ? `/api/admin/products?category=${category}&pageSize=200`
+                : '/api/admin/products?pageSize=200';
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    // 兼容分页格式 {items:[], total} 和数组格式
+                    const products = Array.isArray(result.data) ? result.data : (result.data?.items || []);
+                    renderProducts(products);
+                }
+            } catch (error) {
+                alert('加载商品列表失败');
+            }
+        }
+
+        // 渲染商品列表
+        function renderProducts(products) {
+            const tbody = document.getElementById('productList');
+
+            if (!products || products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无商品</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = products.map(product => {
+                let images = [];
+                try {
+                    images = product.images ? JSON.parse(product.images) : [];
+                } catch (e) {
+                    images = product.image_url ? [product.image_url] : [];
+                }
+                const firstImage = images[0] || product.image_url || '';
+
+                const categoryNames = {
+                    earring: '耳饰',
+                    necklace: '项链',
+                    ring: '戒指',
+                    bracelet: '手链',
+                    bangle: '手镯',
+                    sunglasses: '墨镜',
+                    bag: '包袋',
+                    hat: '帽子',
+                    belt: '腰带',
+                    hair_accessory: '发饰',
+                };
+
+                const statusText = product.is_active ? '<span class="text-green-600">上架</span>' : '<span class="text-gray-400">下架</span>';
+
+                return `
+                    <tr>
+                        <td class="px-4 py-3">
+                            <input type="checkbox" class="product-checkbox w-4 h-4 cursor-pointer" data-id="${product.id}" onchange="updateSelectedCount()">
+                        </td>
+                        <td class="px-4 py-3">
+                            ${firstImage ? `<img src="${firstImage}" class="w-12 h-12 object-cover rounded" alt="商品图片">` : '<div class="w-12 h-12 bg-gray-200 rounded"></div>'}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600 font-mono">${product.product_code || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-black">${product.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${categoryNames[product.category] || product.category}</td>
+                        <td class="px-4 py-3 text-sm text-black">¥${product.price}</td>
+                        <td class="px-4 py-3 text-sm">${statusText}</td>
+                        <td class="px-4 py-3">
+                            <button
+                                onclick="editProduct('${product.id}')"
+                                class="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 mr-2"
+                            >
+                                编辑
+                            </button>
+                            <button
+                                onclick="deleteProduct('${product.id}')"
+                                class="px-2 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                删除
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // 重置全选状态
+            document.getElementById('selectAll').checked = false;
+            updateSelectedCount();
+        }
+
+        // 显示新增弹窗
+        function showAddModal() {
+            currentEditId = null;
+            uploadedImages = ['', '', '', '', ''];
+
+            document.getElementById('modalTitle').textContent = '新增商品';
+            document.getElementById('productName').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productCategory').value = 'earrings';
+            document.getElementById('productSortOrder').value = '0';
+            document.getElementById('hiddenImage').value = '';
+            document.getElementById('jumpUrl').value = '';
+            document.getElementById('jumpAppId').value = '';
+            document.getElementById('youzanUrl').value = '';
+            document.getElementById('youzanId').value = '';
+            document.getElementById('productDescription').value = '';
+
+            // 重置所有图片上传框
+            for (let i = 0; i < 5; i++) {
+                const preview = document.getElementById(`preview-${i}`);
+                preview.src = '';
+                preview.classList.add('hidden');
+                document.getElementById(`placeholder-${i}`).classList.remove('hidden');
+                document.getElementById(`urlContainer-${i}`).classList.add('hidden');
+                document.getElementById(`removeBtn-${i}`).classList.add('hidden');
+                document.getElementById(`uploadBox-${i}`).classList.remove('has-image');
+                document.getElementById(`fileInput-${i}`).value = '';
+            }
+
+            document.getElementById('productModal').classList.remove('hidden');
+        }
+
+        // 编辑商品
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`/api/products/${id}`);
+                const result = await response.json();
+
+                if (result.code === 200 && result.data) {
+                    const product = result.data;
+                    currentEditId = id;
+
+                    document.getElementById('modalTitle').textContent = '编辑商品';
+                    document.getElementById('productName').value = product.name;
+                    document.getElementById('productPrice').value = product.price;
+                    document.getElementById('productCategory').value = product.category;
+                    document.getElementById('productSortOrder').value = product.sort_order || 0;
+                    document.getElementById('hiddenImage').value = product.hidden_image_url || '';
+                    document.getElementById('jumpUrl').value = product.jump_url || '';
+                    document.getElementById('jumpAppId').value = product.jump_app_id || '';
+                    document.getElementById('youzanUrl').value = product.youzan_url || '';
+                    document.getElementById('youzanId').value = product.youzan_product_id || '';
+                    document.getElementById('productDescription').value = product.description || '';
+
+                    // 解析已有图片
+                    let images = [];
+                    try {
+                        images = product.images ? JSON.parse(product.images) : [];
+                    } catch (e) {
+                        images = product.image_url ? [product.image_url] : [];
+                    }
+
+                    // 填充图片
+                    for (let i = 0; i < 5; i++) {
+                        const url = images[i] || '';
+                        uploadedImages[i] = url;
+
+                        if (url) {
+                            const preview = document.getElementById(`preview-${i}`);
+                            preview.src = url;
+                            preview.classList.remove('hidden');
+                            document.getElementById(`placeholder-${i}`).classList.add('hidden');
+
+                            const urlText = document.getElementById(`urlText-${i}`);
+                            urlText.textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
+                            document.getElementById(`urlContainer-${i}`).classList.remove('hidden');
+                            document.getElementById(`removeBtn-${i}`).classList.remove('hidden');
+                            document.getElementById(`uploadBox-${i}`).classList.add('has-image');
+                        } else {
+                            const preview = document.getElementById(`preview-${i}`);
+                            preview.src = '';
+                            preview.classList.add('hidden');
+                            document.getElementById(`placeholder-${i}`).classList.remove('hidden');
+                            document.getElementById(`urlContainer-${i}`).classList.add('hidden');
+                            document.getElementById(`removeBtn-${i}`).classList.add('hidden');
+                            document.getElementById(`uploadBox-${i}`).classList.remove('has-image');
+                        }
+                    }
+
+                    document.getElementById('productModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('加载商品信息失败');
+            }
+        }
+
+        // 保存商品
+        async function saveProduct() {
+            const name = document.getElementById('productName').value;
+            const price = parseInt(document.getElementById('productPrice').value);
+            const category = document.getElementById('productCategory').value;
+            const sortOrder = parseInt(document.getElementById('productSortOrder').value) || 0;
+            const hiddenImageUrl = document.getElementById('hiddenImage').value;
+            const jumpUrl = document.getElementById('jumpUrl').value;
+            const youzanUrl = document.getElementById('youzanUrl').value;
+            const youzanId = document.getElementById('youzanId').value;
+            const description = document.getElementById('productDescription').value;
+
+            if (!name || !price) {
+                alert('请填写必填项');
+                return;
+            }
+
+            // 过滤空URL，只保留有效图片
+            const validImages = uploadedImages.filter(url => url && url.trim() !== '');
+            const imagesJson = JSON.stringify(validImages);
+            const mainImageUrl = validImages[0] || '';
+
+            const data = {
+                id: currentEditId || generateId(),
+                name,
+                price,
+                category,
+                image_url: mainImageUrl,
+                image_key: mainImageUrl,
+                images: imagesJson,
+                hidden_image_url: hiddenImageUrl,
+                jump_url: jumpUrl,
+                jump_app_id: document.getElementById('jumpAppId').value || null,
+                youzan_url: youzanUrl,
+                youzan_product_id: youzanId,
+                description,
+                sort_order: sortOrder,
+            };
+
+            try {
+                const url = currentEditId ? `/api/admin/products/${currentEditId}` : '/api/admin/products';
+                const method = currentEditId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    alert(currentEditId ? '更新成功' : '创建成功');
+                    closeModal();
+                    loadProducts();
+                } else {
+                    alert(result.msg || '操作失败');
+                }
+            } catch (error) {
+                alert('操作失败');
+            }
+        }
+
+        // 删除商品
+        async function deleteProduct(id) {
+            if (!confirm('确定要删除这个商品吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/products/${id}`, {
+                    method: 'DELETE',
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    alert('删除成功');
+                    loadProducts();
+                } else {
+                    alert(result.msg || '删除失败');
+                }
+            } catch (error) {
+                alert('删除失败');
+            }
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('productModal').classList.add('hidden');
+        }
+
+        // 生成ID
+        function generateId() {
+            return 'prod-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // 导出Excel
+        function exportExcel() {
+            alert('Excel导出功能开发中...');
+        }
+
+        // 全选/取消全选
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        }
+
+        // 更新选中计数
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            const count = checkboxes.length;
+            const batchActions = document.getElementById('batchActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (count > 0) {
+                batchActions.classList.remove('hidden');
+                selectedCount.textContent = `已选中 ${count} 项`;
+            } else {
+                batchActions.classList.add('hidden');
+            }
+            
+            // 更新全选框状态
+            const allCheckboxes = document.querySelectorAll('.product-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            selectAll.checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
+        }
+
+        // 获取选中的商品ID列表
+        function getSelectedIds() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.dataset.id);
+        }
+
+        // 批量更新上下架状态
+        async function batchUpdateStatus(isActive) {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('请先选择商品');
+                return;
+            }
+            
+            const action = isActive ? '上架' : '下架';
+            if (!confirm(`确定要批量${action} ${ids.length} 个商品吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/products/batch-status', {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ ids, is_active: isActive }),
+                });
+
+                const result = await response.json();
+                if (result.code === 200) {
+                    alert(`批量${action}成功`);
+                    loadProducts();
+                } else {
+                    alert(result.msg || `批量${action}失败`);
+                }
+            } catch (error) {
+                alert(`批量${action}失败`);
+            }
+        }
+
+        // 批量删除
+        async function batchDelete() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('请先选择商品');
+                return;
+            }
+            
+            if (!confirm(`确定要批量删除 ${ids.length} 个商品吗？此操作不可恢复！`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/products/batch-delete', {
+                    method: 'DELETE',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ ids }),
+                });
+
+                const result = await response.json();
+                if (result.code === 200) {
+                    alert('批量删除成功');
+                    loadProducts();
+                } else {
+                    alert(result.msg || '批量删除失败');
+                }
+            } catch (error) {
+                alert('批量删除失败');
+            }
+        }
+
+        // 初始化
+        loadProducts();
+    </script>
+</body>
+</html>
