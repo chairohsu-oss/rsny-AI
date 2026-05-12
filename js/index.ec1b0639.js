@@ -1,0 +1,1 @@
+import{f as s,t,j as e,V as a,T as r}from"./vendors.8e53fff5.js";function i(){return s.useEffect(function(){t.redirectTo({url:"/pages/admin/dashboard/index"})},[]),e.jsx(a,{className:"flex items-center justify-center h-screen bg-gray-100",children:e.jsx(r,{className:"text-gray-500",children:"正在跳转..."})})}export{i as default};

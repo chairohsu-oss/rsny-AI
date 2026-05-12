@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport">
+  
+  <!-- PWA 基础配置 -->
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="AI试戴小助手">
+  
+  <!-- iOS 原生 App 配置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="试戴助手">
+  <meta name="apple-touch-fullscreen" content="yes">
+  
+  <!-- iOS App 图标 -->
+  <link rel="apple-touch-icon" href="/icons/icon-180.png">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- 禁止自动识别电话、邮箱、地址 -->
+  <meta name="format-detection" content="telephone=no,email=no,address=no">
+  
+  <!-- IE 兼容 -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  
+  <!-- SEO -->
+  <meta name="description" content="智能饰品试戴，预见佩戴效果">
+  <meta name="keywords" content="试戴,饰品,首饰,耳环,项链,戒指,AR试戴">
+  
+  <title>AI试戴小助手</title>
+  
+  <script>!function(n){function f(){var e=n.document.documentElement,r=e.getBoundingClientRect(),width=r.width,height=r.height,arr=[width,height].filter(function(value){return Boolean(value)}),w=Math.min.apply(Math,arr),x=40*w/750;e.style.fontSize=x>=40?"40px":x<=20?"20px":x+"px"}; n.addEventListener("resize",(function(){f()})),f()}(window);</script>
+  
+  
+  <!-- iOS 原生体验样式 -->
+  <style>
+    /* iOS 安全区域适配 */
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      height: 100%;
+      overflow: hidden;
+      -ms-scroll-chaining: none;
+          overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+      /* iOS 原生字体 */
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', sans-serif;
+      /* 平滑字体渲染 */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      /* 原生文本大小调整 */
+      -webkit-text-size-adjust: 100%;
+      /* 禁用长按弹出菜单 */
+      -webkit-touch-callout: none;
+      /* 禁用选中 */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+       -ms-user-select: none;
+           user-select: none;
+      /* 背景色 */
+      background-color: #ffffff;
+    }
+    
+    /* 允许输入框选中 */
+    taro-input-core, taro-textarea-core {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+       -ms-user-select: text;
+           user-select: text;
+    }
+    
+    /* iOS 安全区域内边距 */
+    #app {
+      height: 100%;
+      overflow: hidden;
+      /* 适配刘海屏和底部指示器 */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    
+    /* 加载动画 - iOS 风格 */
+    .app-loading {
+      position: fixed;
+      inset: 0;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+          -ms-flex-align: center;
+              align-items: center;
+      -webkit-justify-content: center;
+          -ms-flex-pack: center;
+              justify-content: center;
+      background: #ffffff;
+      z-index: 9999;
+    }
+    
+    .app-loading-spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 0.075rem solid #e5e5e5;
+      border-top-color: #007aff;
+      border-radius: 50%;
+      -webkit-animation: app-loading-spin 0.8s linear infinite;
+              animation: app-loading-spin 0.8s linear infinite;
+    }
+    
+    @-webkit-keyframes app-loading-spin {
+      to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    
+    @keyframes app-loading-spin {
+      to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+    }
+    
+    /* 禁用点击高亮（iOS 原生感） */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 点击反馈 - 模拟 iOS 点击效果 */
+    .tappable {
+      cursor: pointer;
+      -webkit-transition: opacity 0.1s ease;
+      transition: opacity 0.1s ease;
+    }
+    
+    .tappable:active {
+      opacity: 0.5;
+    }
+    
+    /* iOS 滚动条样式 */
+    ::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    
+    /* 下拉刷新禁用 */
+    body {
+      overscroll-behavior-y: contain;
+    }
+  </style>
+  <script type="module" crossorigin src="/rsny-AI/js/index.c586d652.js"></script>
+  <link rel="modulepreload" crossorigin href="/rsny-AI/js/vendors.8e53fff5.js">
+  <link rel="modulepreload" crossorigin href="/rsny-AI/js/common.3445b765.js">
+  <link rel="stylesheet" href="/rsny-AI/css/vendors.8886af03.css">
+  <link rel="stylesheet" href="/rsny-AI/css/common.1e2544fe.css">
+  <link rel="stylesheet" href="/rsny-AI/css/index.728d9532.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- 加载动画 -->
+    <div class="app-loading" id="app-loading">
+      <div class="app-loading-spinner"></div>
+    </div>
+  </div>
+  
+  <!-- 注册 Service Worker -->
+  <script>
+    // 隐藏加载动画
+    function hideLoading() {
+      const loading = document.getElementById('app-loading');
+      if (loading) {
+        loading.style.opacity = '0';
+        loading.style.transition = 'opacity 0.3s ease';
+        setTimeout(function() {
+          loading.style.display = 'none';
+        }, 300);
+      }
+    }
+    
+    // 页面加载完成后隐藏
+    window.addEventListener('load', hideLoading);
+    
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('[PWA] Service Worker 注册成功:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('[PWA] Service Worker 注册失败:', error);
+          });
+      });
+    }
+    
+    // iOS 独立模式检测
+    if (window.navigator.standalone === true) {
+      console.log('[PWA] 运行在 iOS 独立模式');
+      document.body.classList.add('standalone');
+    }
+    
+    // 检测是否从主屏幕启动
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('[PWA] 运行在独立显示模式');
+      document.body.classList.add('standalone');
+    }
+  </script>
+</body>
+
+</html>
