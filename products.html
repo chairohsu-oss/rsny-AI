@@ -1120,19 +1120,20 @@
             var url = uploadedImages[index];
             if (!url) { alert('该位置没有图片'); return; }
             cropImageIndex = index;
-            document.getElementById('cropImage').src = url;
-            document.getElementById('cropModal').classList.remove('hidden');
-            // 等图片加载后初始化裁剪框
-            document.getElementById('cropImage').onload = function() {
-                var img = document.getElementById('cropImage');
-                var container = document.getElementById('cropContainer');
-                var overlay = document.getElementById('cropOverlay');
-                // 默认裁剪框为图片的80%
+            var img = document.getElementById('cropImage');
+            var modal = document.getElementById('cropModal');
+            // 通过图片代理加载（同源，避免 Canvas CORS 污染）
+            img.src = '/api/image/proxy?url=' + encodeURIComponent(url);
+            modal.classList.remove('hidden');
+            img.onload = function() {
                 cropW = img.naturalWidth * 0.8;
                 cropH = img.naturalHeight * 0.8;
                 cropStartX = (img.naturalWidth - cropW) / 2;
                 cropStartY = (img.naturalHeight - cropH) / 2;
                 updateCropOverlay();
+            };
+            img.onerror = function() {
+                alert('图片加载失败，无法裁剪。请检查网络或重新打开编辑弹窗后重试。');
             };
             // 绑定鼠标事件
             var overlay = document.getElementById('cropOverlay');
@@ -1194,36 +1195,40 @@
         }
 
         function confirmCrop() {
-            var img = document.getElementById('cropImage');
-            var canvas = document.createElement('canvas');
-            canvas.width = cropW;
-            canvas.height = cropH;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, cropStartX, cropStartY, cropW, cropH, 0, 0, cropW, cropH);
-            var base64 = canvas.toDataURL('image/png').split(',')[1];
-            // 上传裁剪后的图片
-            fetch('/api/admin/upload-image', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: base64, ext: 'png', folder: 'products' }),
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(result) {
-                if (result.code === 200 && result.data) {
-                    var url = result.data.url;
-                    uploadedImages[cropImageIndex] = url;
-                    // 更新预览
-                    document.getElementById('preview-' + cropImageIndex).src = url;
-                    document.getElementById('urlText-' + cropImageIndex).textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
-                    alert('裁剪成功');
-                    closeCrop();
-                } else {
-                    alert('裁剪上传失败: ' + (result.msg || '未知错误'));
-                }
-            })
-            .catch(function(e) {
-                alert('裁剪上传失败: ' + e.message);
-            });
+            try {
+                var img = document.getElementById('cropImage');
+                var canvas = document.createElement('canvas');
+                canvas.width = cropW;
+                canvas.height = cropH;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, cropStartX, cropStartY, cropW, cropH, 0, 0, cropW, cropH);
+                var base64 = canvas.toDataURL('image/png').split(',')[1];
+                // 上传裁剪后的图片
+                fetch('/api/admin/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, ext: 'png', folder: 'products' }),
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.code === 200 && result.data) {
+                        var url = result.data.url;
+                        uploadedImages[cropImageIndex] = url;
+                        // 更新预览
+                        document.getElementById('preview-' + cropImageIndex).src = url;
+                        document.getElementById('urlText-' + cropImageIndex).textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
+                        alert('裁剪成功');
+                        closeCrop();
+                    } else {
+                        alert('裁剪上传失败: ' + (result.msg || '未知错误'));
+                    }
+                })
+                .catch(function(e) {
+                    alert('裁剪上传失败: ' + e.message);
+                });
+            } catch (e) {
+                alert('裁剪失败，可能是 Canvas CORS 限制: ' + e.message);
+            }
         }
 
         function closeCrop() {
