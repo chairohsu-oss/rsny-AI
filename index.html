@@ -1253,14 +1253,25 @@
     <script>
     // ===== FC3 后端适配：全局 fetch wrapper =====
     const ADMIN_PASSWORD = 'rsny@1234';
+    const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
     const _origFetch = window.fetch;
     window.fetch = function(url, opts) {
       if (!opts) opts = {};
       opts.headers = opts.headers || {};
       let finalUrl = url;
-      if (typeof url === 'string' && url.startsWith('/api/')) {
-        finalUrl = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run' + url;
-        opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+      if (typeof url === 'string') {
+        // 相对路径 /api/... 补全为 FC3 绝对 URL
+        if (url.startsWith('/api/')) {
+          finalUrl = FC3_BASE + url;
+        }
+        // 所有发往 FC3 后端的请求都注入认证头
+        if (finalUrl.includes('tryon-api-qluouziury.cn-hangzhou.fcapp.run')) {
+          opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+        }
+        // api-stats 路由映射到 dashboard-stats
+        if (finalUrl.includes('/api-stats')) {
+          finalUrl = finalUrl.replace('/api-stats', '/dashboard-stats');
+        }
       }
       return _origFetch(finalUrl, opts);
     };
