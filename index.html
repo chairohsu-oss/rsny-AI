@@ -2675,7 +2675,7 @@
                 const [productsRes, usersRes, statsRes] = await Promise.all([
                     fetch(`${API_BASE}/products?pageSize=200`).then(r => r.json()),
                     fetch(`${API_BASE}/users`).then(r => r.json()),
-                    fetch(`${API_BASE}/api-stats`).then(r => r.json())
+                    fetch(`${API_BASE}/dashboard-stats`).then(r => r.json())
                 ]);
 
                 const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.items || []);
@@ -2683,16 +2683,17 @@
                 const stats = statsRes.data || {};
 
                 // 统计数据
-                const today = new Date().toISOString().split('T')[0];
+                var activeCount = 0;
+                for (var i = 0; i < products.length; i++) { if (products[i].is_active) activeCount++; }
 
-                document.getElementById('stat-today').textContent = stats.todayCount || 0;
-                document.getElementById('stat-yesterday').textContent = stats.yesterdayCount || 0;
-                document.getElementById('stat-users').textContent = users.length;
-                document.getElementById('stat-active').textContent = stats.todayActiveUsers || 0;
-                document.getElementById('stat-products').textContent = products.length;
-                document.getElementById('stat-active-products').textContent = products.filter(p => p.is_active).length;
-                document.getElementById('stat-records').textContent = stats.totalCount || 0;
-                document.getElementById('stat-rate').textContent = stats.successRate || '0%';
+                document.getElementById('stat-today').textContent = stats.todayRecords || 0;
+                document.getElementById('stat-yesterday').textContent = 0;
+                document.getElementById('stat-users').textContent = stats.totalUsers || 0;
+                document.getElementById('stat-active').textContent = stats.activeUsers || 0;
+                document.getElementById('stat-products').textContent = stats.totalProducts || products.length;
+                document.getElementById('stat-active-products').textContent = activeCount;
+                document.getElementById('stat-records').textContent = stats.totalRecords || 0;
+                document.getElementById('stat-rate').textContent = stats.totalRecords > 0 ? Math.round(stats.totalRecords / stats.totalRecords * 100) + '%' : '0%';
 
                 document.getElementById('updateTime').textContent = `更新于: ${new Date().toLocaleTimeString()}`;
 
