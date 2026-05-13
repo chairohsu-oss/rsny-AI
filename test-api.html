@@ -65,27 +65,30 @@
     <div id="log" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 300px; overflow-y: auto;"></div>
 
     <script>
-        // === FC3 后端适配 ===
-        const ADMIN_PASSWORD = 'rsny@1234';
-        const _origFetch = window.fetch;
-        const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
-        window.fetch = function(url, opts) {
-            if (!opts) opts = {};
-            opts.headers = opts.headers || {};
-            let finalUrl = url;
-            if (typeof url === 'string' && url.startsWith('/api/')) {
-                finalUrl = FC3_BASE + url;
-                opts.headers['x-admin-key'] = ADMIN_PASSWORD;
-            }
-            return _origFetch(finalUrl, opts);
-        };
-        // 权限检查
-        (function() {
-            if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
-                window.location.href = '/rsny-AI/login.html';
-            }
-        })();
+    
+    // ===== FC3 后端适配 =====
+    const ADMIN_PASSWORD = 'rsny@1234';
+    const FC3_BASE = 'https://tryon-api-qluouziury.cn-hangzhou.fcapp.run';
+    const _origFetch = window.fetch;
+    window.fetch = function(url, opts) {
+      if (!opts) opts = {};
+      opts.headers = opts.headers || {};
+      let finalUrl = url;
+      // 相对路径 /api/... 自动补全为 FC3 绝对 URL + 注入认证头
+      if (typeof url === 'string' && url.startsWith('/api/')) {
+        finalUrl = FC3_BASE + url;
+        opts.headers['x-admin-key'] = ADMIN_PASSWORD;
+      }
+      return _origFetch(finalUrl, opts);
+    };
 
+    // 权限检查
+    (function() {
+      if (localStorage.getItem('adminToken') !== ADMIN_PASSWORD) {
+        window.location.href = 'login.html';
+      }
+    })();
+    
         let configs = [];
 
         function log(message) {
