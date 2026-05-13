@@ -2440,6 +2440,8 @@
                         </div>
                     ` : ''}
                     ${log.prompt ? `<div class="bg-gray-50 rounded-lg p-4"><h4 class="font-semibold text-gray-900 mb-2">提示词</h4><pre class="text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto">${escapeHtml(log.prompt)}</pre></div>` : ''}
+                    ${log.request_data ? `<div class="bg-gray-50 rounded-lg p-4"><h4 class="font-semibold text-gray-900 mb-2">请求参数</h4><pre class="text-xs text-gray-700 whitespace-pre-wrap overflow-x-auto max-h-60">${escapeHtml(formatLogJson(log.request_data))}</pre></div>` : ''}
+                    ${log.response_data ? `<div class="bg-gray-50 rounded-lg p-4"><h4 class="font-semibold text-gray-900 mb-2">响应数据</h4><pre class="text-xs text-gray-700 whitespace-pre-wrap overflow-x-auto max-h-60">${escapeHtml(formatLogJson(log.response_data))}</pre></div>` : ''}
                     ${log.error_message ? `<div class="bg-red-50 rounded-lg p-4"><h4 class="font-semibold text-red-900 mb-2">错误信息</h4><div class="text-sm text-red-700">${escapeHtml(log.error_message)}</div>${log.error_stack ? `<pre class="text-xs text-red-600 mt-2 whitespace-pre-wrap overflow-x-auto max-h-40">${escapeHtml(log.error_stack)}</pre>` : ''}</div>` : ''}
                 </div>
             `;
