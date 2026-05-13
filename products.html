@@ -479,12 +479,23 @@
             document.getElementById(`uploadBox-${index}`).classList.add('uploading');
 
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const response = await fetch('/api/admin/upload', {
+                // 将文件转为base64
+                const reader = new FileReader();
+                const base64 = await new Promise((resolve, reject) => {
+                    reader.onload = () => {
+                        const result = reader.result;
+                        const base64Str = result.split(',')[1] || result;
+                        resolve(base64Str);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                
+                const ext = file.name.includes('.') ? file.name.split('.').pop() : 'png';
+                const response = await fetch('/api/admin/upload-image', {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64, ext: ext, folder: 'products' }),
                 });
 
                 const result = await response.json();
@@ -689,7 +700,7 @@
         // 编辑商品
         async function editProduct(id) {
             try {
-                const response = await fetch(`/api/products/${id}`);
+                const response = await fetch(`/api/admin/products/${id}`);
                 const result = await response.json();
 
                 if (result.code === 200 && result.data) {
@@ -901,11 +912,8 @@
 
             try {
                 const response = await fetch('/api/admin/products/batch-status', {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids, is_active: isActive }),
                 });
 
@@ -935,11 +943,8 @@
 
             try {
                 const response = await fetch('/api/admin/products/batch-delete', {
-                    method: 'DELETE',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids }),
                 });
 
