@@ -615,8 +615,10 @@
                     urlText.textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
                     urlContainer.classList.remove('hidden');
 
-                    // 显示删除按钮
+                    // 显示删除/设隐/裁剪按钮
                     document.getElementById(`removeBtn-${index}`).classList.remove('hidden');
+                    document.getElementById(`setHiddenBtn-${index}`).classList.remove('hidden');
+                    document.getElementById(`cropBtn-${index}`).classList.remove('hidden');
 
                     // 更新上传框样式
                     document.getElementById(`uploadBox-${index}`).classList.add('has-image');
@@ -647,6 +649,8 @@
             // 隐藏URL和删除按钮
             document.getElementById(`urlContainer-${index}`).classList.add('hidden');
             document.getElementById(`removeBtn-${index}`).classList.add('hidden');
+            document.getElementById(`setHiddenBtn-${index}`).classList.add('hidden');
+            document.getElementById(`cropBtn-${index}`).classList.add('hidden');
 
             // 重置样式
             document.getElementById(`uploadBox-${index}`).classList.remove('has-image');
@@ -789,6 +793,8 @@
                 document.getElementById(`placeholder-${i}`).classList.remove('hidden');
                 document.getElementById(`urlContainer-${i}`).classList.add('hidden');
                 document.getElementById(`removeBtn-${i}`).classList.add('hidden');
+                document.getElementById(`setHiddenBtn-${i}`).classList.add('hidden');
+                document.getElementById(`cropBtn-${i}`).classList.add('hidden');
                 document.getElementById(`uploadBox-${i}`).classList.remove('has-image');
                 document.getElementById(`fileInput-${i}`).value = '';
             }
@@ -841,6 +847,8 @@
                             urlText.textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
                             document.getElementById(`urlContainer-${i}`).classList.remove('hidden');
                             document.getElementById(`removeBtn-${i}`).classList.remove('hidden');
+                            document.getElementById(`setHiddenBtn-${i}`).classList.remove('hidden');
+                            document.getElementById(`cropBtn-${i}`).classList.remove('hidden');
                             document.getElementById(`uploadBox-${i}`).classList.add('has-image');
                         } else {
                             const preview = document.getElementById(`preview-${i}`);
@@ -849,6 +857,8 @@
                             document.getElementById(`placeholder-${i}`).classList.remove('hidden');
                             document.getElementById(`urlContainer-${i}`).classList.add('hidden');
                             document.getElementById(`removeBtn-${i}`).classList.add('hidden');
+                            document.getElementById(`setHiddenBtn-${i}`).classList.add('hidden');
+                            document.getElementById(`cropBtn-${i}`).classList.add('hidden');
                             document.getElementById(`uploadBox-${i}`).classList.remove('has-image');
                         }
                     }
