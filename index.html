@@ -3024,7 +3024,7 @@
                     <div id="url-container-${i}" class="w-24 mt-1 hidden">
                         <div class="url-text text-gray-500 bg-gray-50 p-1 rounded truncate" id="url-text-${i}"></div>
                         <div class="flex gap-1 mt-1">
-                            <button class="text-xs text-blue-500 hover:text-blue-700" onclick="copyImageUrl(${i})">复制</button>
+                            <button class="text-xs text-orange-500 hover:text-orange-700" onclick="setAsHiddenImage(${i})">设隐</button>
                             <button class="text-xs text-green-500 hover:text-green-700" onclick="cropProductImage(${i})">裁剪</button>
                             <button class="text-xs text-red-500 hover:text-red-700" onclick="removeImage(event, ${i})">删除</button>
                         </div>
@@ -3337,23 +3337,19 @@
             document.getElementById(`file-input-${index}`).value = '';
         }
 
-        // 复制图片URL
-        function copyImageUrl(index) {
+        // 一键设为主图为隐藏图
+        function setAsHiddenImage(index) {
             const preview = document.getElementById(`preview-${index}`);
             const url = preview.src;
-            if (url) {
-                navigator.clipboard.writeText(url).then(() => {
-                    showToast('URL已复制');
-                }).catch(() => {
-                    const input = document.createElement('input');
-                    input.value = url;
-                    document.body.appendChild(input);
-                    input.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(input);
-                    showToast('URL已复制');
-                });
+            if (!url) {
+                showToast('请先上传图片', 'error');
+                return;
             }
+            // 设置到隐藏图URL输入框
+            document.getElementById('product-hidden-image').value = url;
+            // 刷新隐藏图预览
+            loadHiddenImage();
+            showToast('已设为主图 ' + (index+1) + ' 为隐藏图');
         }
 
         // ===== 隐藏图片上传功能 =====
