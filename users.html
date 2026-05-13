@@ -577,7 +577,7 @@
         // 加载用户列表
         async function loadUsers() {
             try {
-                const res = await fetch(`${API_BASE}/users`);
+                const res = await fetch(`/api/admin/users`);
                 const result = await res.json();
                 allUsers = result.data || [];
                 filteredUsers = [...allUsers];
@@ -725,7 +725,7 @@
         async function doDeleteUser() {
             if (!deletingUserId) return;
             try {
-                const res = await fetch(`${API_BASE}/users/${encodeURIComponent(deletingUserId)}`, { method: 'DELETE' });
+                const res = await fetch(`/api/admin/users/${encodeURIComponent(deletingUserId)}`, { method: 'DELETE' });
                 const result = await res.json();
                 if (result.code === 200) {
                     alert('用户已删除');
