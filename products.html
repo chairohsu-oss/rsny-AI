@@ -1122,8 +1122,6 @@
             cropImageIndex = index;
             var img = document.getElementById('cropImage');
             var modal = document.getElementById('cropModal');
-            // 通过图片代理加载（同源，避免 Canvas CORS 污染）
-            img.src = '/api/image/proxy?url=' + encodeURIComponent(url);
             modal.classList.remove('hidden');
             img.onload = function() {
                 cropW = img.naturalWidth * 0.8;
@@ -1134,24 +1132,32 @@
             };
             img.onerror = function() {
                 alert('图片加载失败，无法裁剪。请检查网络或重新打开编辑弹窗后重试。');
+                closeCrop();
             };
-            // 绑定鼠标事件
-            var overlay = document.getElementById('cropOverlay');
-            overlay.onmousedown = function(e) {
-                var rect = overlay.getBoundingClientRect();
-                var imgRect = document.getElementById('cropImage').getBoundingClientRect();
-                var scaleX = document.getElementById('cropImage').naturalWidth / imgRect.width;
-                var scaleY = document.getElementById('cropImage').naturalHeight / imgRect.height;
-                var relX = (e.clientX - rect.left) / rect.width;
-                var relY = (e.clientY - rect.top) / rect.height;
-                // 右下角10px区域为拖拽缩放
-                if (relX > 0.8 && relY > 0.8) {
-                    cropResizing = true;
-                } else {
-                    cropDragging = true;
-                }
-                cropDragStart(e);
-            };
+            // 从 URL 中提取 OSS key，用 ?key= 参数让后端重新签名（避免预签名URL失效）
+            var ossMatch = url.match(/rsny-ai2\.oss-cn-hangzhou\.aliyuncs\.com\/([^?]+)/);
+            var fetchUrl;
+            if (ossMatch) {
+                var key = decodeURIComponent(ossMatch[1]); // 如 products/xxx.jpg
+                fetchUrl = '/api/image/proxy?key=' + encodeURIComponent(key);
+            } else if (url.startsWith('blob:')) {
+                fetchUrl = url;
+            } else {
+                fetchUrl = '/api/image/proxy?url=' + encodeURIComponent(url);
+            }
+            fetch(fetchUrl)
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.blob();
+                })
+                .then(function(blob) {
+                    var blobUrl = URL.createObjectURL(blob);
+                    img.src = blobUrl;
+                })
+                .catch(function(e) {
+                    alert('图片加载失败: ' + e.message);
+                    closeCrop();
+                });
         }
 
         function cropDragStart(e) {
@@ -1233,6 +1239,12 @@
 
         function closeCrop() {
             document.getElementById('cropModal').classList.add('hidden');
+            var img = document.getElementById('cropImage');
+            // 释放 Blob URL 防止内存泄漏
+            if (img.src && img.src.startsWith('blob:')) {
+                URL.revokeObjectURL(img.src);
+            }
+            img.src = '';
             document.onmousemove = null;
             document.onmouseup = null;
         }
