@@ -30,6 +30,15 @@
             opacity: 0.6;
             pointer-events: none;
         }
+        /* 裁剪框样式 */
+        .crop-container { position: relative; display: inline-block; max-width: 100%; }
+        .crop-container img { max-width: 100%; max-height: 70vh; display: block; }
+        .crop-overlay { position: absolute; border: 2px dashed #3b82f6; background: rgba(59,130,246,0.1); cursor: move; }
+        .crop-overlay::after { content: ''; position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: #3b82f6; border-radius: 50%; cursor: nwse-resize; }
+        .page-btn { padding: 4px 10px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .page-btn:hover { background: #f3f4f6; }
+        .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -124,6 +133,13 @@
                             📥 导出Excel
                         </button>
 
+                        <button
+                            onclick="openBatchParse()"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                        >
+                            🔗 批量解析有赞
+                        </button>
+
                         <!-- 批量操作按钮 -->
                         <div id="batchActions" class="flex gap-2 hidden">
                             <button
@@ -170,6 +186,17 @@
                             <!-- 动态加载 -->
                         </tbody>
                     </table>
+                    <!-- 分页 -->
+                    <div id="paginationBar" class="flex items-center justify-between px-4 py-3 border-t border-gray-100 hidden">
+                        <div class="text-sm text-gray-500">共 <span id="totalCount">0</span> 个商品</div>
+                        <div class="flex items-center gap-2">
+                            <button class="page-btn" onclick="goPage(1)" id="firstPage">首页</button>
+                            <button class="page-btn" onclick="goPage(currentPage-1)" id="prevPage">&lt; 上一页</button>
+                            <span class="text-sm text-gray-600" id="pageInfo">第 1/1 页</span>
+                            <button class="page-btn" onclick="goPage(currentPage+1)" id="nextPage">下一页 &gt;</button>
+                            <button class="page-btn" onclick="goPage(totalPages)" id="lastPage">末页</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,6 +286,8 @@
                             </div>
                             <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-0" onclick="removeImage(event, 0)">删除</div>
                         </div>
+                            <div class="text-xs text-orange-500 cursor-pointer hover:text-orange-700 hidden" id="setHiddenBtn-0" onclick="setAsHidden(0)">设隐</div>
+                            <div class="text-xs text-green-500 cursor-pointer hover:text-green-700 hidden" id="cropBtn-0" onclick="openCrop(0)">裁剪</div></div>
 
                         <!-- 详情图 1-4 -->
                         <div class="flex flex-col items-center">
@@ -280,6 +309,8 @@
                             </div>
                             <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-1" onclick="removeImage(event, 1)">删除</div>
                         </div>
+                            <div class="text-xs text-orange-500 cursor-pointer hover:text-orange-700 hidden" id="setHiddenBtn-1" onclick="setAsHidden(1)">设隐</div>
+                            <div class="text-xs text-green-500 cursor-pointer hover:text-green-700 hidden" id="cropBtn-1" onclick="openCrop(1)">裁剪</div></div>
 
                         <div class="flex flex-col items-center">
                             <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
@@ -300,6 +331,8 @@
                             </div>
                             <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-2" onclick="removeImage(event, 2)">删除</div>
                         </div>
+                            <div class="text-xs text-orange-500 cursor-pointer hover:text-orange-700 hidden" id="setHiddenBtn-2" onclick="setAsHidden(2)">设隐</div>
+                            <div class="text-xs text-green-500 cursor-pointer hover:text-green-700 hidden" id="cropBtn-2" onclick="openCrop(2)">裁剪</div></div>
 
                         <div class="flex flex-col items-center">
                             <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
@@ -320,6 +353,8 @@
                             </div>
                             <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-3" onclick="removeImage(event, 3)">删除</div>
                         </div>
+                            <div class="text-xs text-orange-500 cursor-pointer hover:text-orange-700 hidden" id="setHiddenBtn-3" onclick="setAsHidden(3)">设隐</div>
+                            <div class="text-xs text-green-500 cursor-pointer hover:text-green-700 hidden" id="cropBtn-3" onclick="openCrop(3)">裁剪</div></div>
 
                         <div class="flex flex-col items-center">
                             <div class="upload-box w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative overflow-hidden"
@@ -340,6 +375,8 @@
                             </div>
                             <div class="text-xs text-red-500 mt-1 cursor-pointer hover:text-red-700 hidden" id="removeBtn-4" onclick="removeImage(event, 4)">删除</div>
                         </div>
+                            <div class="text-xs text-orange-500 cursor-pointer hover:text-orange-700 hidden" id="setHiddenBtn-4" onclick="setAsHidden(4)">设隐</div>
+                            <div class="text-xs text-green-500 cursor-pointer hover:text-green-700 hidden" id="cropBtn-4" onclick="openCrop(4)">裁剪</div></div>
                     </div>
                 </div>
 
@@ -427,6 +464,68 @@
                 >
                     保存
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 裁剪弹窗 -->
+    <div id="cropModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-black">裁剪图片</h3>
+                <button onclick="closeCrop()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="crop-container" id="cropContainer">
+                <img id="cropImage" src="" alt="裁剪图片">
+                <div class="crop-overlay" id="cropOverlay"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <p class="text-xs text-gray-500 mr-auto mt-2">拖拽选择裁剪区域，右下角拖拽调整大小</p>
+                <button onclick="closeCrop()" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">取消</button>
+                <button onclick="confirmCrop()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">确认裁剪</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量解析有赞URL弹窗 -->
+    <div id="batchParseModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[85vh] overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-black">批量解析有赞URL</h3>
+                <button onclick="closeBatchParse()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">上传包含 货号→有赞URL/有赞ID/淘宝ID/抖音链接/小红书ID 映射的 Excel 文件，批量更新商品。</p>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50" id="batchParseUploadBox" onclick="document.getElementById('batchParseFile').click()">
+                <div class="text-4xl text-gray-300 mb-2">📄</div>
+                <p class="text-sm text-gray-500">点击上传 Excel 文件</p>
+                <input type="file" id="batchParseFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleBatchParseFile(event)">
+            </div>
+            <div id="batchParsePreview" class="mt-4 hidden">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">预览映射（前10条）</h4>
+                <div class="overflow-auto max-h-48 border rounded">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-gray-600">货号</th>
+                                <th class="px-3 py-2 text-left text-gray-600">有赞URL</th>
+                                <th class="px-3 py-2 text-left text-gray-600">有赞商品ID</th>
+                                <th class="px-3 py-2 text-left text-gray-600">淘宝ID</th>
+                                <th class="px-3 py-2 text-left text-gray-600">抖音链接</th>
+                                <th class="px-3 py-2 text-left text-gray-600">小红书ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchParsePreviewBody"></tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">共 <span id="batchParseTotal">0</span> 条映射</p>
+            </div>
+            <div id="batchParseResult" class="mt-4 hidden">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">执行结果</h4>
+                <div class="overflow-auto max-h-48 border rounded p-3 bg-gray-50 text-sm" id="batchParseResultBody"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button onclick="closeBatchParse()" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">关闭</button>
+                <button id="batchParseSubmitBtn" onclick="submitBatchParse()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>开始解析</button>
             </div>
         </div>
     </div>
@@ -959,6 +1058,332 @@
                 alert('批量删除失败');
             }
         }
+
+        // ===== 分页 =====
+        var currentPage = 1;
+        var totalPages = 1;
+        var pageSize = 20;
+        var allProducts = [];
+
+        function goPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderPage();
+        }
+
+        function renderPage() {
+            var start = (currentPage - 1) * pageSize;
+            var end = Math.min(start + pageSize, allProducts.length);
+            var pageData = allProducts.slice(start, end);
+            renderProducts(pageData);
+            document.getElementById('totalCount').textContent = allProducts.length;
+            document.getElementById('pageInfo').textContent = '第 ' + currentPage + '/' + totalPages + ' 页';
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('paginationBar').classList.remove('hidden');
+        }
+
+        // 重写 loadProducts 支持分页
+        var origLoadProducts = loadProducts;
+        loadProducts = async function() {
+            try {
+                const response = await fetch('/api/admin/products');
+                const result = await response.json();
+
+                if (result.code === 200 && result.data) {
+                    allProducts = result.data;
+                    totalPages = Math.max(1, Math.ceil(allProducts.length / pageSize));
+                    currentPage = 1;
+                    renderPage();
+                } else {
+                    document.getElementById('productList').innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">加载失败</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('productList').innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">加载商品列表失败</td></tr>';
+            }
+        };
+
+        // ===== 设隐功能 =====
+        function setAsHidden(index) {
+            var url = uploadedImages[index];
+            if (!url) { alert('该位置没有图片'); return; }
+            document.getElementById('hiddenImage').value = url;
+            alert('已设置为主图 ' + (index+1) + ' 为隐藏图');
+        }
+
+        // ===== 裁剪功能 =====
+        var cropImageIndex = -1;
+        var cropStartX = 0, cropStartY = 0, cropW = 0, cropH = 0;
+        var cropDragging = false, cropResizing = false;
+
+        function openCrop(index) {
+            var url = uploadedImages[index];
+            if (!url) { alert('该位置没有图片'); return; }
+            cropImageIndex = index;
+            document.getElementById('cropImage').src = url;
+            document.getElementById('cropModal').classList.remove('hidden');
+            // 等图片加载后初始化裁剪框
+            document.getElementById('cropImage').onload = function() {
+                var img = document.getElementById('cropImage');
+                var container = document.getElementById('cropContainer');
+                var overlay = document.getElementById('cropOverlay');
+                // 默认裁剪框为图片的80%
+                cropW = img.naturalWidth * 0.8;
+                cropH = img.naturalHeight * 0.8;
+                cropStartX = (img.naturalWidth - cropW) / 2;
+                cropStartY = (img.naturalHeight - cropH) / 2;
+                updateCropOverlay();
+            };
+            // 绑定鼠标事件
+            var overlay = document.getElementById('cropOverlay');
+            overlay.onmousedown = function(e) {
+                var rect = overlay.getBoundingClientRect();
+                var imgRect = document.getElementById('cropImage').getBoundingClientRect();
+                var scaleX = document.getElementById('cropImage').naturalWidth / imgRect.width;
+                var scaleY = document.getElementById('cropImage').naturalHeight / imgRect.height;
+                var relX = (e.clientX - rect.left) / rect.width;
+                var relY = (e.clientY - rect.top) / rect.height;
+                // 右下角10px区域为拖拽缩放
+                if (relX > 0.8 && relY > 0.8) {
+                    cropResizing = true;
+                } else {
+                    cropDragging = true;
+                }
+                cropDragStart(e);
+            };
+        }
+
+        function cropDragStart(e) {
+            var img = document.getElementById('cropImage');
+            var imgRect = img.getBoundingClientRect();
+            var scaleX = img.naturalWidth / imgRect.width;
+            var scaleY = img.naturalHeight / imgRect.height;
+            var startX = (e.clientX - imgRect.left) * scaleX;
+            var startY = (e.clientY - imgRect.top) * scaleY;
+
+            document.onmousemove = function(ev) {
+                var curX = (ev.clientX - imgRect.left) * scaleX;
+                var curY = (ev.clientY - imgRect.top) * scaleY;
+                if (cropResizing) {
+                    cropW = Math.max(50, curX - cropStartX);
+                    cropH = Math.max(50, curY - cropStartY);
+                } else if (cropDragging) {
+                    cropStartX = Math.max(0, Math.min(img.naturalWidth - cropW, cropStartX + (curX - startX)));
+                    cropStartY = Math.max(0, Math.min(img.naturalHeight - cropH, cropStartY + (curY - startY)));
+                }
+                updateCropOverlay();
+            };
+            document.onmouseup = function() {
+                cropDragging = false;
+                cropResizing = false;
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        }
+
+        function updateCropOverlay() {
+            var img = document.getElementById('cropImage');
+            var imgRect = img.getBoundingClientRect();
+            var scaleX = imgRect.width / img.naturalWidth;
+            var scaleY = imgRect.height / img.naturalHeight;
+            var overlay = document.getElementById('cropOverlay');
+            overlay.style.left = (cropStartX * scaleX) + 'px';
+            overlay.style.top = (cropStartY * scaleY) + 'px';
+            overlay.style.width = (cropW * scaleX) + 'px';
+            overlay.style.height = (cropH * scaleY) + 'px';
+        }
+
+        function confirmCrop() {
+            var img = document.getElementById('cropImage');
+            var canvas = document.createElement('canvas');
+            canvas.width = cropW;
+            canvas.height = cropH;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, cropStartX, cropStartY, cropW, cropH, 0, 0, cropW, cropH);
+            var base64 = canvas.toDataURL('image/png').split(',')[1];
+            // 上传裁剪后的图片
+            fetch('/api/admin/upload-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64, ext: 'png', folder: 'products' }),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.code === 200 && result.data) {
+                    var url = result.data.url;
+                    uploadedImages[cropImageIndex] = url;
+                    // 更新预览
+                    document.getElementById('preview-' + cropImageIndex).src = url;
+                    document.getElementById('urlText-' + cropImageIndex).textContent = url.length > 50 ? url.substring(0, 50) + '...' : url;
+                    alert('裁剪成功');
+                    closeCrop();
+                } else {
+                    alert('裁剪上传失败: ' + (result.msg || '未知错误'));
+                }
+            })
+            .catch(function(e) {
+                alert('裁剪上传失败: ' + e.message);
+            });
+        }
+
+        function closeCrop() {
+            document.getElementById('cropModal').classList.add('hidden');
+            document.onmousemove = null;
+            document.onmouseup = null;
+        }
+
+        // ===== 批量解析有赞URL =====
+        var batchParseMappings = [];
+
+        function openBatchParse() {
+            document.getElementById('batchParseModal').classList.remove('hidden');
+            document.getElementById('batchParsePreview').classList.add('hidden');
+            document.getElementById('batchParseResult').classList.add('hidden');
+            document.getElementById('batchParseSubmitBtn').disabled = true;
+            batchParseMappings = [];
+            document.getElementById('batchParseFile').value = '';
+        }
+
+        function closeBatchParse() {
+            document.getElementById('batchParseModal').classList.add('hidden');
+        }
+
+        function handleBatchParseFile(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = new Uint8Array(e.target.result);
+                    var workbook = XLSX.read(data, { type: 'array' });
+                    var sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    var json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    // Parse header row to find column indices
+                    var headers = json[0] || [];
+                    var colMap = {};
+                    headers.forEach(function(h, i) {
+                        var hh = String(h).trim();
+                        if (hh.includes('货号') || hh.includes('编号') || hh.includes('编码')) colMap.product_code = i;
+                        if (hh.includes('有赞') && hh.includes('URL')) colMap.youzan_url = i;
+                        if (hh.includes('有赞') && (hh.includes('ID') || hh.includes('商品ID'))) colMap.youzan_id = i;
+                        if (hh.includes('淘宝') || hh.includes('TB')) colMap.taobao_id = i;
+                        if (hh.includes('抖音') || hh.includes('DY')) colMap.douyin_url = i;
+                        if (hh.includes('小红书') || hh.includes('XHS')) colMap.xiaohongshu_id = i;
+                    });
+                    if (colMap.product_code === undefined) {
+                        // Try first column as product_code
+                        colMap.product_code = 0;
+                    }
+                    batchParseMappings = [];
+                    for (var i = 1; i < json.length; i++) {
+                        var row = json[i];
+                        if (!row || !row[colMap.product_code]) continue;
+                        var m = {
+                            product_code: String(row[colMap.product_code]).trim(),
+                            youzan_url: colMap.youzan_url !== undefined ? String(row[colMap.youzan_url] || '').trim() : '',
+                            youzan_product_id: colMap.youzan_id !== undefined ? String(row[colMap.youzan_id] || '').trim() : '',
+                            taobao_id: colMap.taobao_id !== undefined ? String(row[colMap.taobao_id] || '').trim() : '',
+                            douyin_url: colMap.douyin_url !== undefined ? String(row[colMap.douyin_url] || '').trim() : '',
+                            xiaohongshu_id: colMap.xiaohongshu_id !== undefined ? String(row[colMap.xiaohongshu_id] || '').trim() : '',
+                        };
+                        batchParseMappings.push(m);
+                    }
+                    if (batchParseMappings.length === 0) {
+                        alert('未能从文件中解析出有效数据，请检查表头格式');
+                        return;
+                    }
+                    // 预览
+                    var tbody = document.getElementById('batchParsePreviewBody');
+                    var previewData = batchParseMappings.slice(0, 10);
+                    tbody.innerHTML = previewData.map(function(m) {
+                        return '<tr><td class="px-3 py-1 font-mono text-xs">' + m.product_code + '</td><td class="px-3 py-1 text-xs">' + (m.youzan_url.slice(0,30)||'-') + '</td><td class="px-3 py-1 text-xs">' + (m.youzan_product_id||'-') + '</td><td class="px-3 py-1 text-xs">' + (m.taobao_id||'-') + '</td><td class="px-3 py-1 text-xs">' + (m.douyin_url.slice(0,30)||'-') + '</td><td class="px-3 py-1 text-xs">' + (m.xiaohongshu_id||'-') + '</td></tr>';
+                    }).join('');
+                    document.getElementById('batchParseTotal').textContent = batchParseMappings.length;
+                    document.getElementById('batchParsePreview').classList.remove('hidden');
+                    document.getElementById('batchParseSubmitBtn').disabled = false;
+                } catch(err) {
+                    alert('解析文件失败: ' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function submitBatchParse() {
+            if (batchParseMappings.length === 0) { alert('没有可解析的数据'); return; }
+            document.getElementById('batchParseSubmitBtn').disabled = true;
+            document.getElementById('batchParseSubmitBtn').textContent = '解析中...';
+            fetch('/api/admin/products/batch-parse-youzan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mappings: batchParseMappings }),
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                var resultBody = document.getElementById('batchParseResultBody');
+                if (result.code === 200 && result.data) {
+                    var success = result.data.filter(function(r) { return r.success; }).length;
+                    var failed = result.data.filter(function(r) { return !r.success; }).length;
+                    resultBody.innerHTML = '<p class="text-green-600 mb-2">✅ 成功: ' + success + ' 条 | ❌ 失败: ' + failed + ' 条</p>';
+                    if (failed > 0) {
+                        resultBody.innerHTML += '<div class="mt-2">' + result.data.filter(function(r) { return !r.success; }).slice(0, 20).map(function(r) {
+                            return '<div class="text-xs text-red-500">' + (r.product_code || 'index ' + r.index) + ': ' + r.error + '</div>';
+                        }).join('') + '</div>';
+                    }
+                } else {
+                    resultBody.innerHTML = '<p class="text-red-500">' + (result.msg || '解析失败') + '</p>';
+                }
+                document.getElementById('batchParseResult').classList.remove('hidden');
+                document.getElementById('batchParseSubmitBtn').disabled = false;
+                document.getElementById('batchParseSubmitBtn').textContent = '开始解析';
+                loadProducts(); // 刷新列表
+            })
+            .catch(function(e) {
+                document.getElementById('batchParseResultBody').innerHTML = '<p class="text-red-500">请求失败: ' + e.message + '</p>';
+                document.getElementById('batchParseResult').classList.remove('hidden');
+                document.getElementById('batchParseSubmitBtn').disabled = false;
+                document.getElementById('batchParseSubmitBtn').textContent = '开始解析';
+            });
+        }
+
+        // ===== Excel导出 =====
+        function exportExcel() {
+            if (allProducts.length === 0) { alert('没有商品数据可导出'); return; }
+            // 构建CSV
+            var headers = ['商品编码', '名称', '分类', '价格', '状态', '排序', '主图URL', '有赞URL', '有赞商品ID', '描述'];
+            var rows = allProducts.map(function(p) {
+                var catNames = { earring: '耳饰', necklace: '项链', ring: '戒指', bracelet: '手链', bangle: '手镯', sunglasses: '墨镜', bag: '包袋', hat: '帽子', belt: '腰带', hair_accessory: '发饰' };
+                return [
+                    p.product_code || '',
+                    p.name,
+                    catNames[p.category] || p.category || '',
+                    p.price,
+                    p.is_active ? '上架' : '下架',
+                    p.sort_order || 0,
+                    p.image_url || '',
+                    p.youzan_url || '',
+                    p.youzan_product_id || '',
+                    (p.description || '').replace(/"/g, '""'),
+                ];
+            });
+            var csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(function(r) {
+                return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+            }).join('\n');
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'RSNY商品列表_' + new Date().toISOString().slice(0, 10) + '.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        // ===== XLSX 库动态加载 =====
+        (function() {
+            if (typeof XLSX !== 'undefined') return;
+            var script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+            script.onload = function() { console.log('XLSX库加载完成'); };
+            document.head.appendChild(script);
+        })();
 
         // 初始化
         loadProducts();
