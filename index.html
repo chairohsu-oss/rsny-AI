@@ -3113,16 +3113,31 @@
         function loadProductImages(images) {
             for (let i = 0; i < 5; i++) {
                 const url = images[i] || '';
+                const preview = document.getElementById(`preview-${i}`);
                 if (url) {
-                    document.getElementById(`preview-${i}`).src = url;
-                    document.getElementById(`preview-${i}`).classList.remove('hidden');
+                    preview.src = url;
+                    preview.classList.remove('hidden');
+                    // onerror 回退：OSS 直接加载失败时走代理
+                    preview.onerror = function() {
+                        this.onerror = null;
+                        let key = this.src;
+                        let prev = '';
+                        while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+                        const m = key.match(/rsny-ai2\.oss-cn-hangzhou[^\/]*\/(.+?)(\?|$)/);
+                        if (m) {
+                            let k = m[1]; let p = '';
+                            while (p !== k) { p = k; k = decodeURIComponent(k); }
+                            this.src = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                        }
+                    };
                     document.getElementById(`placeholder-${i}`).classList.add('hidden');
                     document.getElementById(`upload-box-${i}`).classList.add('has-image');
                     document.getElementById(`url-text-${i}`).textContent = url.substring(0, 30) + '...';
                     document.getElementById(`url-container-${i}`).classList.remove('hidden');
                 } else {
-                    document.getElementById(`preview-${i}`).src = '';
-                    document.getElementById(`preview-${i}`).classList.add('hidden');
+                    preview.src = '';
+                    preview.classList.add('hidden');
+                    preview.onerror = null;
                     document.getElementById(`placeholder-${i}`).classList.remove('hidden');
                     document.getElementById(`upload-box-${i}`).classList.remove('has-image');
                     document.getElementById(`url-container-${i}`).classList.add('hidden');
@@ -3167,12 +3182,31 @@
                     console.log('隐藏图片加载成功:', url.substring(0, 50));
                 };
                 img.onerror = function() {
-                    loading.classList.add('hidden');
-                    img.classList.add('hidden');
-                    placeholder.classList.remove('hidden');
-                    preview.classList.remove('has-image');
-                    actions.classList.add('hidden');
-                    showToast('图片加载失败，请检查URL是否正确', 'error');
+                    // 尝试通过代理加载
+                    let key = url;
+                    let prev = '';
+                    while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+                    const m = key.match(/rsny-ai2\.oss-cn-hangzhou[^\/]*\/(.+?)(\?|$)/);
+                    if (m) {
+                        let k = m[1]; let p = '';
+                        while (p !== k) { p = k; k = decodeURIComponent(k); }
+                        img.onerror = function() {
+                            loading.classList.add('hidden');
+                            img.classList.add('hidden');
+                            placeholder.classList.remove('hidden');
+                            preview.classList.remove('has-image');
+                            actions.classList.add('hidden');
+                            showToast('图片加载失败，请检查URL是否正确', 'error');
+                        };
+                        img.src = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                    } else {
+                        loading.classList.add('hidden');
+                        img.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                        preview.classList.remove('has-image');
+                        actions.classList.add('hidden');
+                        showToast('图片加载失败，请检查URL是否正确', 'error');
+                    }
                 };
                 img.src = url;
             } else {
@@ -3469,12 +3503,11 @@
             cropImage.style.opacity = '0.5';
             
             try {
-                // 先将图片转换为 base64 以避免跨域问题
-                const base64Image = await loadImageAsBase64(imageUrl);
+                // 通过代理加载图片（绕过 CORS）
+                const blobUrl = await loadImageViaProxy(imageUrl);
                 
-                cropImage.src = base64Image;
+                cropImage.src = blobUrl;
                 cropImage.style.opacity = '1';
-                cropImage.crossOrigin = 'anonymous';
                 
                 // 初始化 Cropper
                 cropImage.onload = function() {
@@ -3492,32 +3525,41 @@
             }
         }
         
-        // 将图片加载为 base64 格式
-        function loadImageAsBase64(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = function() {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        const base64 = canvas.toDataURL('image/png');
-                        resolve(base64);
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                img.onerror = function() {
-                    reject(new Error('图片加载失败'));
-                };
-                
-                img.src = url;
-            });
+        // 通过代理加载图片（绕过 CORS）
+        async function loadImageViaProxy(imageUrl) {
+            // 循环解码 URL（处理多重编码如 %252F）
+            let key = imageUrl;
+            let prev = '';
+            while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+            
+            // 从 OSS URL 中提取 key
+            const ossPatterns = [
+                /rsny-ai2\.oss-cn-hangzhou\.aliyuncs\.com\/(.+?)(\?|$)/,
+                /rsny-ai2\.oss-cn-hangzhou\.internal\/(.+?)(\?|$)/,
+                /\/api\/image\/proxy\?key=(.+?)(&|$)/
+            ];
+            let ossKey = null;
+            for (const pat of ossPatterns) {
+                const m = key.match(pat);
+                if (m) { ossKey = m[1]; break; }
+            }
+            
+            // 如果提取不到 key，尝试直接用 URL 代理
+            let proxyUrl;
+            if (ossKey) {
+                // 循环解码 key 本身
+                let k = ossKey;
+                let p = '';
+                while (p !== k) { p = k; k = decodeURIComponent(k); }
+                proxyUrl = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+            } else {
+                proxyUrl = `${API_BASE}/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+            }
+            
+            const resp = await fetch(proxyUrl);
+            if (!resp.ok) throw new Error('代理加载失败: ' + resp.status);
+            const blob = await resp.blob();
+            return URL.createObjectURL(blob);
         }
         
         // 初始化 Cropper
