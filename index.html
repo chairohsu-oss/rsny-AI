@@ -699,8 +699,19 @@
                                         <div class="flex items-center justify-between mb-2">
                                             <label class="text-sm font-medium text-gray-700">有赞小程序 AppID</label>
                                         </div>
-                                        <input type="text" id="youzan-appid" class="input-field w-full" placeholder="如：wx6d0f1e4a2ed17e19" onchange="saveYouzanAppid(this.value)">
+                                        <input type="text" id="youzan-appid" class="input-field w-full" placeholder="如：wx6d0f1e4a2ed17e19">
                                         <p class="text-xs text-gray-400 mt-1">填写后，商品编辑页"从有赞链接解析"会自动填充此AppID</p>
+                                        <div class="flex items-center gap-2 mt-3">
+                                            <button onclick="saveYouzanAppid(document.getElementById('youzan-appid').value)" class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                保存
+                                            </button>
+                                            <button onclick="syncAllYouzanAppid()" class="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                                全部同步
+                                            </button>
+                                        </div>
+                                        <div id="youzan-sync-result" class="mt-2 hidden"></div>
                                     </div>
                                 </div>
                             </div>
@@ -4791,6 +4802,54 @@
                 }
             } catch (err) {
                 showToast('保存失败: ' + err.message, 'error');
+            }
+        }
+
+        async function syncAllYouzanAppid() {
+            const appid = document.getElementById('youzan-appid').value.trim();
+            if (!appid) {
+                showToast('请先填写有赞小程序AppID', 'error');
+                return;
+            }
+            
+            // 先保存配置
+            await saveYouzanAppid(appid);
+            
+            // 再请求后端批量同步
+            const resultEl = document.getElementById('youzan-sync-result');
+            resultEl.className = 'mt-2 text-sm text-gray-500';
+            resultEl.innerHTML = '正在同步所有商品...';
+            resultEl.style.display = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/products/batch-sync-appid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jump_app_id: appid })
+                });
+                const result = await res.json();
+                if (result.code === 200) {
+                    const success = (result.data || []).filter(r => r.success).length;
+                    const fail = (result.data || []).filter(r => !r.success).length;
+                    if (fail > 0) {
+                        resultEl.className = 'mt-2 text-sm text-yellow-600';
+                        resultEl.innerHTML = `同步完成：成功 ${success} 个商品，失败 ${fail} 个`;
+                    } else {
+                        resultEl.className = 'mt-2 text-sm text-green-600';
+                        resultEl.innerHTML = `✅ 全部同步完成：${success} 个商品已更新为「已关联」`;
+                    }
+                    showToast(`全部同步完成：${success} 个成功${fail > 0 ? '，' + fail + ' 个失败' : ''}`);
+                    // 刷新商品列表
+                    loadProducts(currentProductPage);
+                } else {
+                    resultEl.className = 'mt-2 text-sm text-red-600';
+                    resultEl.innerHTML = '同步失败：' + (result.msg || '未知错误');
+                    showToast('同步失败: ' + (result.msg || '未知错误'), 'error');
+                }
+            } catch (err) {
+                resultEl.className = 'mt-2 text-sm text-red-600';
+                resultEl.innerHTML = '请求失败：' + err.message;
+                showToast('请求失败: ' + err.message, 'error');
             }
         }
 
