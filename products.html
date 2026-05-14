@@ -1132,41 +1132,56 @@
             cropImageIndex = index;
             var img = document.getElementById('cropImage');
             var modal = document.getElementById('cropModal');
-            modal.classList.remove('hidden');
-            img.onload = function() {
-                cropW = img.naturalWidth * 0.8;
-                cropH = img.naturalHeight * 0.8;
-                cropStartX = (img.naturalWidth - cropW) / 2;
-                cropStartY = (img.naturalHeight - cropH) / 2;
-                updateCropOverlay();
-            };
-            img.onerror = function() {
-                alert('图片加载失败，无法裁剪。请检查网络或重新打开编辑弹窗后重试。');
-                closeCrop();
-            };
-            // 从 URL 中提取 OSS key，用 ?key= 参数让后端重新签名（避免预签名URL失效）
+            
+            // 清除之前的状态，防止残留 src 触发 onerror
+            img.onload = null;
+            img.onerror = null;
+            img.src = '';
+            
+            // 从 URL 中提取 OSS key，用 ?key= 参数让后端重新签名（避免预签名URL双重编码）
             var ossMatch = url.match(/rsny-ai2\.oss-cn-hangzhou\.aliyuncs\.com\/([^?]+)/);
             var fetchUrl;
             if (ossMatch) {
-                var key = decodeURIComponent(ossMatch[1]); // 如 products/xxx.jpg
+                // 循环解码处理双重/多重编码（数据库中部分URL含 %252F 等双重编码）
+                var key = ossMatch[1];
+                var prev = '';
+                while (prev !== key) { prev = key; key = decodeURIComponent(key); }
                 fetchUrl = '/api/image/proxy?key=' + encodeURIComponent(key);
             } else if (url.startsWith('blob:')) {
                 fetchUrl = url;
             } else {
                 fetchUrl = '/api/image/proxy?url=' + encodeURIComponent(url);
             }
+            
+            // 先 fetch 图片，成功后再显示弹窗和设置 img.src
             fetch(fetchUrl)
                 .then(function(r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
                     return r.blob();
                 })
                 .then(function(blob) {
+                    // 检查是否返回了真正的图片（而非 SVG 错误占位图）
+                    if (!blob.type.startsWith('image/') || blob.type.includes('svg')) {
+                        throw new Error('返回的不是有效图片: ' + blob.type);
+                    }
                     var blobUrl = URL.createObjectURL(blob);
+                    img.onload = function() {
+                        cropW = img.naturalWidth * 0.8;
+                        cropH = img.naturalHeight * 0.8;
+                        cropStartX = (img.naturalWidth - cropW) / 2;
+                        cropStartY = (img.naturalHeight - cropH) / 2;
+                        updateCropOverlay();
+                    };
+                    img.onerror = function() {
+                        alert('图片渲染失败，无法裁剪');
+                        closeCrop();
+                    };
                     img.src = blobUrl;
+                    // 图片设置成功后才显示弹窗
+                    modal.classList.remove('hidden');
                 })
                 .catch(function(e) {
                     alert('图片加载失败: ' + e.message);
-                    closeCrop();
                 });
         }
 
