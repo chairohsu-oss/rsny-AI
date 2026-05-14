@@ -605,6 +605,15 @@
 
                     // 显示预览
                     const preview = document.getElementById(`preview-${index}`);
+                    preview.onerror = function() {
+                        if (preview.src.includes('aliyuncs.com') && !preview.src.includes('/api/image/proxy')) {
+                            var m = preview.src.match(/aliyuncs\.com\/([^?]+)/);
+                            if (m) {
+                                var k = m[1]; var p2 = ''; while (p2 !== k) { p2 = k; k = decodeURIComponent(k); }
+                                preview.src = '/api/image/proxy?key=' + encodeURIComponent(k);
+                            }
+                        }
+                    };
                     preview.src = url;
                     preview.classList.remove('hidden');
                     document.getElementById(`placeholder-${index}`).classList.add('hidden');
@@ -738,7 +747,7 @@
                             <input type="checkbox" class="product-checkbox w-4 h-4 cursor-pointer" data-id="${product.id}" onchange="updateSelectedCount()">
                         </td>
                         <td class="px-4 py-3">
-                            ${firstImage ? `<img src="${firstImage}" class="w-12 h-12 object-cover rounded" alt="商品图片">` : '<div class="w-12 h-12 bg-gray-200 rounded"></div>'}
+                            ${firstImage ? `<img src="${firstImage}" class="w-12 h-12 object-cover rounded" alt="商品图片" onerror="this.onerror=null;var m=this.src.match(/aliyuncs\\.com\\/([^?]+)/);if(m){var k=m[1],p='';while(p!==k){p=k;k=decodeURIComponent(k);}this.src='/api/image/proxy?key='+encodeURIComponent(k);}">` : '<div class="w-12 h-12 bg-gray-200 rounded"></div>'}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600 font-mono">${product.product_code || '-'}</td>
                         <td class="px-4 py-3 text-sm text-black">${product.name}</td>
@@ -839,6 +848,16 @@
 
                         if (url) {
                             const preview = document.getElementById(`preview-${i}`);
+                            // onerror 回退：OSS 直接加载失败时通过代理加载
+                            preview.onerror = function() {
+                                if (preview.src.includes('aliyuncs.com') && !preview.src.includes('/api/image/proxy')) {
+                                    var m = preview.src.match(/aliyuncs\.com\/([^?]+)/);
+                                    if (m) {
+                                        var k = m[1]; var p2 = ''; while (p2 !== k) { p2 = k; k = decodeURIComponent(k); }
+                                        preview.src = '/api/image/proxy?key=' + encodeURIComponent(k);
+                                    }
+                                }
+                            };
                             preview.src = url;
                             preview.classList.remove('hidden');
                             document.getElementById(`placeholder-${i}`).classList.add('hidden');
