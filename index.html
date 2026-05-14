@@ -3169,6 +3169,10 @@
             const placeholder = document.getElementById('hidden-image-placeholder');
             const actions = document.getElementById('hidden-image-actions');
             
+            // 清除上一次加载的回调，防止异步竞态导致旧图片在新商品中闪现
+            img.onload = null;
+            img.onerror = null;
+            
             if (url) {
                 // 显示加载状态
                 const loading = document.getElementById('hidden-image-loading');
