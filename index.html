@@ -3624,49 +3624,43 @@
                 // 显示加载状态
                 showToast('正在上传裁剪后的图片...', 'info');
 
-                // 转换为 Blob 并上传
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        showToast('图片转换失败', 'error');
-                        return;
-                    }
-                    
-                    const formData = new FormData();
-                    formData.append('file', blob, 'cropped-image.png');
+                // 转换为 base64 并以 JSON 格式上传（后端 /api/admin/upload 要求 JSON {data, filename}）
+                const dataUrl = canvas.toDataURL('image/png');
+                const base64Data = dataUrl.split(',')[1];
 
-                    try {
-                        const response = await fetch('/api/admin/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
+                try {
+                    const response = await fetch('/api/admin/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: base64Data, filename: 'cropped-image.png' })
+                    });
 
-                        const result = await response.json();
+                    const result = await response.json();
 
-                        if (result.code === 200 && result.data) {
-                            const url = result.data.url;
-                            
-                            if (cropTarget === 'hidden') {
-                                document.getElementById('product-hidden-image').value = url;
-                                loadHiddenImage();
-                            } else if (typeof cropTarget === 'number') {
-                                document.getElementById(`preview-${cropTarget}`).src = url;
-                                document.getElementById(`preview-${cropTarget}`).classList.remove('hidden');
-                                document.getElementById(`placeholder-${cropTarget}`).classList.add('hidden');
-                                document.getElementById(`upload-box-${cropTarget}`).classList.add('has-image');
-                                document.getElementById(`url-text-${cropTarget}`).textContent = url.substring(0, 30) + '...';
-                                document.getElementById(`url-container-${cropTarget}`).classList.remove('hidden');
-                            }
-                            
-                            closeCropModal();
-                            showToast('裁剪并保存成功');
-                        } else {
-                            showToast('上传裁剪图片失败: ' + (result.msg || '未知错误'), 'error');
+                    if (result.code === 200 && result.data) {
+                        const url = result.data.url;
+                        
+                        if (cropTarget === 'hidden') {
+                            document.getElementById('product-hidden-image').value = url;
+                            loadHiddenImage();
+                        } else if (typeof cropTarget === 'number') {
+                            document.getElementById(`preview-${cropTarget}`).src = url;
+                            document.getElementById(`preview-${cropTarget}`).classList.remove('hidden');
+                            document.getElementById(`placeholder-${cropTarget}`).classList.add('hidden');
+                            document.getElementById(`upload-box-${cropTarget}`).classList.add('has-image');
+                            document.getElementById(`url-text-${cropTarget}`).textContent = url.substring(0, 30) + '...';
+                            document.getElementById(`url-container-${cropTarget}`).classList.remove('hidden');
                         }
-                    } catch (error) {
-                        console.error('上传错误:', error);
-                        showToast('上传失败，请重试', 'error');
+                        
+                        closeCropModal();
+                        showToast('裁剪并保存成功');
+                    } else {
+                        showToast('上传裁剪图片失败: ' + (result.msg || '未知错误'), 'error');
                     }
-                }, 'image/png');
+                } catch (error) {
+                    console.error('上传错误:', error);
+                    showToast('上传失败，请重试', 'error');
+                }
             } catch (error) {
                 console.error('裁剪错误:', error);
                 showToast('裁剪失败: ' + error.message, 'error');
