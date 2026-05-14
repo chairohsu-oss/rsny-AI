@@ -3561,7 +3561,8 @@
                 proxyUrl = `${serverRoot}/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
             }
             
-            const resp = await fetch(proxyUrl);
+            // 使用 _origFetch 绕过 fetch wrapper，避免 wrapper 干扰图片代理请求
+            const resp = await (typeof _origFetch === 'function' ? _origFetch : fetch)(proxyUrl);
             if (!resp.ok) throw new Error('代理加载失败: ' + resp.status);
             const blob = await resp.blob();
             return URL.createObjectURL(blob);
