@@ -3127,7 +3127,8 @@
                         if (m) {
                             let k = m[1]; let p = '';
                             while (p !== k) { p = k; k = decodeURIComponent(k); }
-                            this.src = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                            const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+                            this.src = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
                         }
                     };
                     document.getElementById(`placeholder-${i}`).classList.add('hidden');
@@ -3198,7 +3199,8 @@
                             actions.classList.add('hidden');
                             showToast('图片加载失败，请检查URL是否正确', 'error');
                         };
-                        img.src = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                        const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+                        img.src = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
                     } else {
                         loading.classList.add('hidden');
                         img.classList.add('hidden');
@@ -3527,6 +3529,9 @@
         
         // 通过代理加载图片（绕过 CORS）
         async function loadImageViaProxy(imageUrl) {
+            // 服务器根路径（去掉 /api/admin 部分）
+            const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+            
             // 循环解码 URL（处理多重编码如 %252F）
             let key = imageUrl;
             let prev = '';
@@ -3551,9 +3556,9 @@
                 let k = ossKey;
                 let p = '';
                 while (p !== k) { p = k; k = decodeURIComponent(k); }
-                proxyUrl = `${API_BASE}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                proxyUrl = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
             } else {
-                proxyUrl = `${API_BASE}/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+                proxyUrl = `${serverRoot}/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
             }
             
             const resp = await fetch(proxyUrl);
