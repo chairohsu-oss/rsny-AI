@@ -4378,7 +4378,7 @@
             document.getElementById('quota-modal').classList.add('active');
             document.getElementById('quota-user-id').value = userId;
             document.getElementById('quota-user-display').textContent = userId;
-            document.getElementById('quota-value').value = user?.daily_quota || 10;
+            document.getElementById('quota-value').value = user?.max_count || 10;
         }
 
         // ========== 删除用户 ==========
@@ -5002,10 +5002,10 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}`, {
+                const response = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}/quota`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ daily_quota: quota })
+                    body: JSON.stringify({ max_count: quota })
                 });
                 
                 const result = await response.json();
