@@ -142,6 +142,13 @@
                     <span>用户管理</span>
                 </div>
                 
+                <div class="nav-item flex items-center gap-3 px-6 py-3 cursor-pointer" data-page="recycle-bin">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>回收站</span>
+                </div>
+                
                 <div class="nav-item flex items-center gap-3 px-6 py-3 cursor-pointer" data-page="decoration">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
@@ -462,7 +469,29 @@
                     </div>
                 </div>
 
-                <!-- 用户管理页面 -->
+                
+                <!-- 回收站页面 -->
+                <div id="page-recycle-bin" class="content-page">
+                    <div class="bg-white rounded-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">已删除的商品</h3>
+                            <button onclick="emptyRecycleBin()" style="background:#ef4444;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer">清空回收站</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table w-full">
+                                <thead><tr>
+                                    <th style="width:40px"><input type="checkbox" id="select-all-recycle" onchange="toggleSelectAllRecycle()"></th>
+                                    <th style="width:60px">图片</th><th>货号</th><th>名称</th><th style="width:80px">价格</th><th style="width:100px">下架时间</th><th style="width:150px">操作</th>
+                                </tr></thead>
+                                <tbody id="recycle-bin-tbody">
+                                    <tr><td colspan="7" style="text-align:center;color:#999;padding:40px">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+<!-- 用户管理页面 -->
                 <div id="page-users" class="content-page">
                     <div class="bg-white rounded-lg p-4 mb-4">
                         <div class="flex items-center justify-between">
@@ -1301,7 +1330,8 @@
             users: { title: '用户管理', desc: '管理用户配额和生成记录' },
             decoration: { title: '页面装修', desc: '配置小程序首页展示效果' },
             settings: { title: '系统设置', desc: '配置API、提示词和系统参数' },
-            'api-logs': { title: 'API日志', desc: '查看API调用记录和错误信息' }
+            'api-logs': { title: 'API日志', desc: '查看API调用记录和错误信息' },
+            'recycle-bin': { title: '回收站', desc: '管理已删除的商品，可恢复或永久删除' }
         };
 
         // 初始化
@@ -1353,6 +1383,8 @@
                 loadUsers();
             } else if (page === 'settings') {
                 loadSettings();
+            } else if (page === 'recycle-bin') {
+                loadRecycleBin();
             } else if (page === 'api-logs') {
                 loadApiLogs();
             }
