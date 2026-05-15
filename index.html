@@ -3950,7 +3950,7 @@
                 return;
             }
             
-            if (!confirm(`确定要批量删除 ${ids.length} 个商品吗？此操作不可恢复！`)) {
+            if (!confirm(`确定要批量删除 ${ids.length} 个商品吗？商品将移至回收站。`)) {
                 console.log('[batchDeleteProducts] 用户取消了删除');
                 return;
             }
@@ -3966,7 +3966,7 @@
                 const result = await res.json();
                 console.log('[batchDeleteProducts] 响应数据:', JSON.stringify(result));
                 if (result.code === 200) {
-                    showToast('批量删除成功');
+                    showToast('批量删除成功，已移至回收站');
                     productPage = 1;
                     loadProducts();
                 } else {
@@ -5490,7 +5490,13 @@
         async function emptyRecycleBin() {
             if(!confirm("确定清空回收站吗？不可恢复！"))return;
             var ids=recycleBinProducts.map(function(p){return p.id});if(!ids.length)return;
-            try{var at=localStorage.getItem("at")||"rsny@1234";await fetch(API_BASE+"/products/batch-delete",{method:"POST",headers:{"Content-Type":"application/json","x-admin-key":at},body:JSON.stringify({ids:ids})});showToast("回收站已清空");loadRecycleBin()}catch(e){showToast("清空失败","error")}
+            try{
+                var at=localStorage.getItem("at")||"rsny@1234";
+                for(var i=0;i<ids.length;i++){
+                    await fetch(API_BASE+"/products/"+ids[i]+"/permanent",{method:"DELETE",headers:{"x-admin-key":at}});
+                }
+                showToast("回收站已清空");loadRecycleBin();
+            }catch(e){showToast("清空失败","error")}
         }
     </script>
 </body>
