@@ -2434,6 +2434,7 @@
                             <div><span class="text-gray-500">分类:</span> ${log.category || 'N/A'}</div>
                             <div><span class="text-gray-500">时间:</span> ${time}</div>
                             <div><span class="text-gray-500">用户:</span> ${log.user_id || 'anonymous'}</div>
+                            ${log.api_platform_task_id ? `<div><span class="text-gray-500">API平台TaskID:</span><br><span class="text-xs font-mono text-purple-600 break-all">${log.api_platform_task_id}</span></div>` : ''}
                         </div>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">
@@ -2444,9 +2445,9 @@
                         <div class="bg-gray-50 rounded-lg p-4">
                             <h4 class="font-semibold text-gray-900 mb-3">图片</h4>
                             <div class="grid grid-cols-3 gap-4">
-                                ${log.product_image_url ? `<div><div class="text-xs text-gray-500 mb-2">商品图片</div><img src="${log.product_image_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${log.product_image_url}', '_blank')"></div>` : ''}
-                                ${log.user_photo_url ? `<div><div class="text-xs text-gray-500 mb-2">用户照片</div><img src="${log.user_photo_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${log.user_photo_url}', '_blank')"></div>` : ''}
-                                ${log.generated_image_url ? `<div><div class="text-xs text-gray-500 mb-2">生成结果</div><img src="${log.generated_image_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity border-2 border-green-200" onclick="window.open('${log.generated_image_url}', '_blank')"></div>` : ''}
+                                ${log.product_image_url ? `<div><div class="text-xs text-gray-500 mb-2">商品图片</div><img src="${normalizeImgUrl(log.product_image_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${normalizeImgUrl(log.product_image_url)}', '_blank')"></div>` : ''}
+                                ${log.user_photo_url ? `<div><div class="text-xs text-gray-500 mb-2">用户照片</div><img src="${normalizeImgUrl(log.user_photo_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${normalizeImgUrl(log.user_photo_url)}', '_blank')"></div>` : ''}
+                                ${log.generated_image_url ? `<div><div class="text-xs text-gray-500 mb-2">生成结果</div><img src="${normalizeImgUrl(log.generated_image_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity border-2 border-green-200" onclick="window.open('${normalizeImgUrl(log.generated_image_url)}', '_blank')"></div>` : ''}
                             </div>
                         </div>
                     ` : ''}
@@ -2477,6 +2478,18 @@
         function escapeHtml(text) {
             if (!text) return '';
             return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+        
+        // 图片URL规范化：处理从 JSON 数组字符串来的 URL（如 '["url"]' → 'url'）
+        function normalizeImgUrl(url) {
+            if (!url) return '';
+            if (typeof url === 'string' && url.startsWith('[') && url.indexOf('"') >= 0) {
+                try {
+                    var arr = JSON.parse(url);
+                    if (Array.isArray(arr) && arr.length > 0) return arr[0];
+                } catch(e) {}
+            }
+            return url;
         }
 
         function showToast(msg, type = 'success') {
@@ -4518,7 +4531,7 @@
                                    record.status === 'failed' ? 'tag-error' : 'tag-warning';
                 const statusText = record.status === 'completed' ? '已完成' : 
                                   record.status === 'failed' ? '失败' : '生成中';
-                const resultImage = record.result_image_url || record.generated_image_url || '';
+                const resultImage = normalizeImgUrl(record.result_image_url || record.generated_image_url || '');
                 const createdTime = new Date(record.created_at).toLocaleString('zh-CN');
                 
                 return `
@@ -4536,7 +4549,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">用户照片</div>
                                 ${record.upload_photo_url ? 
-                                    `<img src="${record.upload_photo_url}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${record.upload_photo_url}')" alt="用户照片">` :
+                                    `<img src="${normalizeImgUrl(record.upload_photo_url)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(record.upload_photo_url)}')" alt="用户照片">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">暂无</div>`
                                 }
                             </div>
@@ -4545,7 +4558,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">商品主图</div>
                                 ${record.product_image_url ? 
-                                    `<img src="${record.product_image_url}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${record.product_image_url}')" alt="商品主图">` :
+                                    `<img src="${normalizeImgUrl(record.product_image_url)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(record.product_image_url)}')" alt="商品主图">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">暂无</div>`
                                 }
                             </div>
@@ -4554,7 +4567,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">生成结果</div>
                                 ${resultImage ? 
-                                    `<img src="${resultImage}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${resultImage}')" alt="生成结果">` :
+                                    `<img src="${normalizeImgUrl(resultImage)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(resultImage)}')" alt="生成结果">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">${record.status === 'pending' ? '生成中' : '暂无'}</div>`
                                 }
                             </div>
@@ -4566,6 +4579,10 @@
                                 ${record.category ? `
                                     <div class="text-xs text-gray-400 mt-2 mb-1">分类</div>
                                     <div class="text-sm text-gray-600">${record.category}</div>
+                                ` : ''}
+                                ${record.api_platform_task_id ? `
+                                    <div class="text-xs text-gray-400 mt-2 mb-1">API平台TaskID</div>
+                                    <div class="text-xs font-mono text-purple-600 break-all">${record.api_platform_task_id}</div>
                                 ` : ''}
                             </div>
                         </div>
