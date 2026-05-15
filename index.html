@@ -4909,7 +4909,7 @@
                     }
                     showToast(`全部同步完成：${success} 个成功${fail > 0 ? '，' + fail + ' 个失败' : ''}`);
                     // 刷新商品列表
-                    loadProducts(currentProductPage);
+                    loadProducts();
                 } else {
                     resultEl.className = 'mt-2 text-sm text-red-600';
                     resultEl.innerHTML = '同步失败：' + (result.msg || '未知错误');
