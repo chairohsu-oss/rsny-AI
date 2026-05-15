@@ -9,6 +9,7 @@
     <!-- Cropper.js for image cropping -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         
@@ -469,7 +470,6 @@
                     </div>
                 </div>
 
-                
                 <!-- 回收站页面 -->
                 <div id="page-recycle-bin" class="content-page">
                     <div class="bg-white rounded-lg p-6">
@@ -483,9 +483,7 @@
                                     <th style="width:40px"><input type="checkbox" id="select-all-recycle" onchange="toggleSelectAllRecycle()"></th>
                                     <th style="width:60px">图片</th><th>货号</th><th>名称</th><th style="width:80px">价格</th><th style="width:100px">下架时间</th><th style="width:150px">操作</th>
                                 </tr></thead>
-                                <tbody id="recycle-bin-tbody">
-                                    <tr><td colspan="7" style="text-align:center;color:#999;padding:40px">加载中...</td></tr>
-                                </tbody>
+                                <tbody id="recycle-bin-tbody"><tr><td colspan="7" style="text-align:center;color:#999;padding:40px">加载中...</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -728,8 +726,19 @@
                                         <div class="flex items-center justify-between mb-2">
                                             <label class="text-sm font-medium text-gray-700">有赞小程序 AppID</label>
                                         </div>
-                                        <input type="text" id="youzan-appid" class="input-field w-full" placeholder="如：wx6d0f1e4a2ed17e19" onchange="saveYouzanAppid(this.value)">
+                                        <input type="text" id="youzan-appid" class="input-field w-full" placeholder="如：wx6d0f1e4a2ed17e19">
                                         <p class="text-xs text-gray-400 mt-1">填写后，商品编辑页"从有赞链接解析"会自动填充此AppID</p>
+                                        <div class="flex items-center gap-2 mt-3">
+                                            <button onclick="saveYouzanAppid(document.getElementById('youzan-appid').value)" class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                保存
+                                            </button>
+                                            <button onclick="syncAllYouzanAppid()" class="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                                全部同步
+                                            </button>
+                                        </div>
+                                        <div id="youzan-sync-result" class="mt-2 hidden"></div>
                                     </div>
                                 </div>
                             </div>
@@ -866,11 +875,12 @@
                             <div class="flex items-center gap-3">
                                 <select id="log-status-filter" onchange="loadApiLogs()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                                     <option value="">全部状态</option>
+                                    <option value="submitted">已提交</option>
                                     <option value="request_sent">已发送请求</option>
                                     <option value="waiting_response">等待结果返回</option>
                                     <option value="success">成功</option>
-                                    <option value="failed">失败</option>
                                     <option value="timeout">超时</option>
+                                    <option value="failed">失败</option>
                                 </select>
                                 <button onclick="loadApiLogs()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm flex items-center gap-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -948,10 +958,6 @@
                     <textarea id="config-description" rows="2" class="input-field w-full" placeholder="添加配置说明"></textarea>
                 </div>
                 
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="checkbox" id="config-active" checked class="w-4 h-4 text-blue-500">
-                    <label class="text-sm text-gray-700">启用此配置</label>
-                </div>
                 
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button onclick="closeConfigModal()" class="btn-secondary px-6 py-2 rounded-lg text-sm">取消</button>
@@ -2357,7 +2363,7 @@
 
         function updateApiLogStats(logs) {
             const total = logs.length;
-            const pending = logs.filter(l => l.status === 'request_sent' || l.status === 'waiting_response').length;
+            const pending = logs.filter(l => l.status === 'submitted' || l.status === 'request_sent' || l.status === 'waiting_response' || l.status === 'processing').length;
             const success = logs.filter(l => l.status === 'success').length;
             const failed = logs.filter(l => l.status === 'failed' || l.status === 'timeout').length;
             const avgDuration = logs.length > 0 
@@ -2420,6 +2426,7 @@
 
         function getLogStatusBadge(status) {
             const badges = {
+                submitted: '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">📤 已提交</span>',
                 request_sent: '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">📤 已发送请求</span>',
                 waiting_response: '<span class="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded">⏳ 等待结果返回</span>',
                 success: '<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">✅ 成功</span>',
@@ -2456,6 +2463,15 @@
                             <div><span class="text-gray-500">时间:</span> ${time}</div>
                             <div><span class="text-gray-500">用户:</span> ${log.user_id || 'anonymous'}</div>
                         </div>
+                        ${log.api_platform_task_id ? `
+                        <div class="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-purple-700">API平台 Task ID</span>
+                                <button onclick="copyText('${log.api_platform_task_id}')" class="text-xs text-purple-500 hover:text-purple-700 underline">复制</button>
+                            </div>
+                            <div class="text-sm font-mono text-purple-800 break-all">${log.api_platform_task_id}</div>
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4">
                         <h4 class="font-semibold text-gray-900 mb-2">API端点</h4>
@@ -2465,9 +2481,9 @@
                         <div class="bg-gray-50 rounded-lg p-4">
                             <h4 class="font-semibold text-gray-900 mb-3">图片</h4>
                             <div class="grid grid-cols-3 gap-4">
-                                ${log.product_image_url ? `<div><div class="text-xs text-gray-500 mb-2">商品图片</div><img src="${log.product_image_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${log.product_image_url}', '_blank')"></div>` : ''}
-                                ${log.user_photo_url ? `<div><div class="text-xs text-gray-500 mb-2">用户照片</div><img src="${log.user_photo_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${log.user_photo_url}', '_blank')"></div>` : ''}
-                                ${log.generated_image_url ? `<div><div class="text-xs text-gray-500 mb-2">生成结果</div><img src="${log.generated_image_url}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity border-2 border-green-200" onclick="window.open('${log.generated_image_url}', '_blank')"></div>` : ''}
+                                ${log.product_image_url ? `<div><div class="text-xs text-gray-500 mb-2">商品图片</div><img src="${normalizeImgUrl(log.product_image_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${normalizeImgUrl(log.product_image_url)}', '_blank')"></div>` : ''}
+                                ${log.user_photo_url ? `<div><div class="text-xs text-gray-500 mb-2">用户照片</div><img src="${normalizeImgUrl(log.user_photo_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity" onclick="window.open('${normalizeImgUrl(log.user_photo_url)}', '_blank')"></div>` : ''}
+                                ${log.generated_image_url ? `<div><div class="text-xs text-gray-500 mb-2">生成结果</div><img src="${normalizeImgUrl(log.generated_image_url)}" class="w-full rounded-lg cursor-pointer hover:opacity-80 transition-opacity border-2 border-green-200" onclick="window.open('${normalizeImgUrl(log.generated_image_url)}', '_blank')"></div>` : ''}
                             </div>
                         </div>
                     ` : ''}
@@ -2498,6 +2514,55 @@
         function escapeHtml(text) {
             if (!text) return '';
             return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+        
+        // 图片URL规范化：处理从 JSON 数组字符串来的 URL（如 '["url"]' → 'url'）
+        function normalizeImgUrl(url) {
+            if (!url) return '';
+            if (typeof url === 'string' && url.startsWith('[') && url.indexOf('"') >= 0) {
+                try {
+                    var arr = JSON.parse(url);
+                    if (Array.isArray(arr) && arr.length > 0) return arr[0];
+                } catch(e) {}
+            }
+            return url;
+        }
+        
+        // 简易Toast提示
+        function showToast(text, type) {
+            var el = document.createElement('div');
+            el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;padding:8px 20px;border-radius:8px;font-size:14px;color:#fff;background:' + (type === 'error' ? '#ef4444' : '#10b981') + ';box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s';
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { document.body.removeChild(el); }, 300); }, 2000);
+        }
+        
+        // 复制文本到剪贴板
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('已复制到剪贴板', 'success');
+                }).catch(function() {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('已复制到剪贴板', 'success');
+            } catch(e) {
+                showToast('复制失败', 'error');
+            }
+            document.body.removeChild(ta);
         }
 
         function showToast(msg, type = 'success') {
@@ -3145,16 +3210,32 @@
         function loadProductImages(images) {
             for (let i = 0; i < 5; i++) {
                 const url = images[i] || '';
+                const preview = document.getElementById(`preview-${i}`);
                 if (url) {
-                    document.getElementById(`preview-${i}`).src = url;
-                    document.getElementById(`preview-${i}`).classList.remove('hidden');
+                    preview.src = url;
+                    preview.classList.remove('hidden');
+                    // onerror 回退：OSS 直接加载失败时走代理
+                    preview.onerror = function() {
+                        this.onerror = null;
+                        let key = this.src;
+                        let prev = '';
+                        while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+                        const m = key.match(/rsny-ai2\.oss-cn-hangzhou[^\/]*\/(.+?)(\?|$)/);
+                        if (m) {
+                            let k = m[1]; let p = '';
+                            while (p !== k) { p = k; k = decodeURIComponent(k); }
+                            const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+                            this.src = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                        }
+                    };
                     document.getElementById(`placeholder-${i}`).classList.add('hidden');
                     document.getElementById(`upload-box-${i}`).classList.add('has-image');
                     document.getElementById(`url-text-${i}`).textContent = url.substring(0, 30) + '...';
                     document.getElementById(`url-container-${i}`).classList.remove('hidden');
                 } else {
-                    document.getElementById(`preview-${i}`).src = '';
-                    document.getElementById(`preview-${i}`).classList.add('hidden');
+                    preview.src = '';
+                    preview.classList.add('hidden');
+                    preview.onerror = null;
                     document.getElementById(`placeholder-${i}`).classList.remove('hidden');
                     document.getElementById(`upload-box-${i}`).classList.remove('has-image');
                     document.getElementById(`url-container-${i}`).classList.add('hidden');
@@ -3185,6 +3266,10 @@
             const placeholder = document.getElementById('hidden-image-placeholder');
             const actions = document.getElementById('hidden-image-actions');
             
+            // 清除上一次加载的回调，防止异步竞态导致旧图片在新商品中闪现
+            img.onload = null;
+            img.onerror = null;
+            
             if (url) {
                 // 显示加载状态
                 const loading = document.getElementById('hidden-image-loading');
@@ -3199,12 +3284,32 @@
                     console.log('隐藏图片加载成功:', url.substring(0, 50));
                 };
                 img.onerror = function() {
-                    loading.classList.add('hidden');
-                    img.classList.add('hidden');
-                    placeholder.classList.remove('hidden');
-                    preview.classList.remove('has-image');
-                    actions.classList.add('hidden');
-                    showToast('图片加载失败，请检查URL是否正确', 'error');
+                    // 尝试通过代理加载
+                    let key = url;
+                    let prev = '';
+                    while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+                    const m = key.match(/rsny-ai2\.oss-cn-hangzhou[^\/]*\/(.+?)(\?|$)/);
+                    if (m) {
+                        let k = m[1]; let p = '';
+                        while (p !== k) { p = k; k = decodeURIComponent(k); }
+                        img.onerror = function() {
+                            loading.classList.add('hidden');
+                            img.classList.add('hidden');
+                            placeholder.classList.remove('hidden');
+                            preview.classList.remove('has-image');
+                            actions.classList.add('hidden');
+                            showToast('图片加载失败，请检查URL是否正确', 'error');
+                        };
+                        const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+                        img.src = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
+                    } else {
+                        loading.classList.add('hidden');
+                        img.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                        preview.classList.remove('has-image');
+                        actions.classList.add('hidden');
+                        showToast('图片加载失败，请检查URL是否正确', 'error');
+                    }
                 };
                 img.src = url;
             } else {
@@ -3501,12 +3606,11 @@
             cropImage.style.opacity = '0.5';
             
             try {
-                // 先将图片转换为 base64 以避免跨域问题
-                const base64Image = await loadImageAsBase64(imageUrl);
+                // 通过代理加载图片（绕过 CORS）
+                const blobUrl = await loadImageViaProxy(imageUrl);
                 
-                cropImage.src = base64Image;
+                cropImage.src = blobUrl;
                 cropImage.style.opacity = '1';
-                cropImage.crossOrigin = 'anonymous';
                 
                 // 初始化 Cropper
                 cropImage.onload = function() {
@@ -3524,32 +3628,45 @@
             }
         }
         
-        // 将图片加载为 base64 格式
-        function loadImageAsBase64(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = function() {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.naturalWidth;
-                        canvas.height = img.naturalHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        const base64 = canvas.toDataURL('image/png');
-                        resolve(base64);
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                
-                img.onerror = function() {
-                    reject(new Error('图片加载失败'));
-                };
-                
-                img.src = url;
-            });
+        // 通过代理加载图片（绕过 CORS）
+        async function loadImageViaProxy(imageUrl) {
+            // 服务器根路径（去掉 /api/admin 部分）
+            const serverRoot = API_BASE.replace(/\/api\/admin\/?$/, '');
+            
+            // 循环解码 URL（处理多重编码如 %252F）
+            let key = imageUrl;
+            let prev = '';
+            while (prev !== key) { prev = key; key = decodeURIComponent(key); }
+            
+            // 从 OSS URL 中提取 key
+            const ossPatterns = [
+                /rsny-ai2\.oss-cn-hangzhou\.aliyuncs\.com\/(.+?)(\?|$)/,
+                /rsny-ai2\.oss-cn-hangzhou\.internal\/(.+?)(\?|$)/,
+                /\/api\/image\/proxy\?key=(.+?)(&|$)/
+            ];
+            let ossKey = null;
+            for (const pat of ossPatterns) {
+                const m = key.match(pat);
+                if (m) { ossKey = m[1]; break; }
+            }
+            
+            // 如果提取不到 key，尝试直接用 URL 代理
+            let proxyUrl;
+            if (ossKey) {
+                // 循环解码 key 本身
+                let k = ossKey;
+                let p = '';
+                while (p !== k) { p = k; k = decodeURIComponent(k); }
+                proxyUrl = `${serverRoot}/api/image/proxy?key=${encodeURIComponent(k)}`;
+            } else {
+                proxyUrl = `${serverRoot}/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+            }
+            
+            // 使用 _origFetch 绕过 fetch wrapper，避免 wrapper 干扰图片代理请求
+            const resp = await (typeof _origFetch === 'function' ? _origFetch : fetch)(proxyUrl);
+            if (!resp.ok) throw new Error('代理加载失败: ' + resp.status);
+            const blob = await resp.blob();
+            return URL.createObjectURL(blob);
         }
         
         // 初始化 Cropper
@@ -3608,49 +3725,43 @@
                 // 显示加载状态
                 showToast('正在上传裁剪后的图片...', 'info');
 
-                // 转换为 Blob 并上传
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        showToast('图片转换失败', 'error');
-                        return;
-                    }
-                    
-                    const formData = new FormData();
-                    formData.append('file', blob, 'cropped-image.png');
+                // 转换为 base64 并以 JSON 格式上传（后端 /api/admin/upload 要求 JSON {data, filename}）
+                const dataUrl = canvas.toDataURL('image/png');
+                const base64Data = dataUrl.split(',')[1];
 
-                    try {
-                        const response = await fetch('/api/admin/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
+                try {
+                    const response = await fetch('/api/admin/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: base64Data, filename: 'cropped-image.png' })
+                    });
 
-                        const result = await response.json();
+                    const result = await response.json();
 
-                        if (result.code === 200 && result.data) {
-                            const url = result.data.url;
-                            
-                            if (cropTarget === 'hidden') {
-                                document.getElementById('product-hidden-image').value = url;
-                                loadHiddenImage();
-                            } else if (typeof cropTarget === 'number') {
-                                document.getElementById(`preview-${cropTarget}`).src = url;
-                                document.getElementById(`preview-${cropTarget}`).classList.remove('hidden');
-                                document.getElementById(`placeholder-${cropTarget}`).classList.add('hidden');
-                                document.getElementById(`upload-box-${cropTarget}`).classList.add('has-image');
-                                document.getElementById(`url-text-${cropTarget}`).textContent = url.substring(0, 30) + '...';
-                                document.getElementById(`url-container-${cropTarget}`).classList.remove('hidden');
-                            }
-                            
-                            closeCropModal();
-                            showToast('裁剪并保存成功');
-                        } else {
-                            showToast('上传裁剪图片失败: ' + (result.msg || '未知错误'), 'error');
+                    if (result.code === 200 && result.data) {
+                        const url = result.data.url;
+                        
+                        if (cropTarget === 'hidden') {
+                            document.getElementById('product-hidden-image').value = url;
+                            loadHiddenImage();
+                        } else if (typeof cropTarget === 'number') {
+                            document.getElementById(`preview-${cropTarget}`).src = url;
+                            document.getElementById(`preview-${cropTarget}`).classList.remove('hidden');
+                            document.getElementById(`placeholder-${cropTarget}`).classList.add('hidden');
+                            document.getElementById(`upload-box-${cropTarget}`).classList.add('has-image');
+                            document.getElementById(`url-text-${cropTarget}`).textContent = url.substring(0, 30) + '...';
+                            document.getElementById(`url-container-${cropTarget}`).classList.remove('hidden');
                         }
-                    } catch (error) {
-                        console.error('上传错误:', error);
-                        showToast('上传失败，请重试', 'error');
+                        
+                        closeCropModal();
+                        showToast('裁剪并保存成功');
+                    } else {
+                        showToast('上传裁剪图片失败: ' + (result.msg || '未知错误'), 'error');
                     }
-                }, 'image/png');
+                } catch (error) {
+                    console.error('上传错误:', error);
+                    showToast('上传失败，请重试', 'error');
+                }
             } catch (error) {
                 console.error('裁剪错误:', error);
                 showToast('裁剪失败: ' + error.message, 'error');
@@ -3979,52 +4090,219 @@
             }
         }
 
-        // 批量导入商品
-        async function importProducts(event, mode = 'skip') {
+        // 批量导入商品（有赞Excel → 浏览器解析 → JSON发送到后端）
+        const CATEGORY_MAP_CN_TO_EN = {
+            '耳饰': 'earring', '项链': 'necklace', '戒指': 'ring', '手链': 'bracelet',
+            '手镯': 'bangle', '墨镜': 'sunglasses', '包袋': 'bag', '帽子': 'hat',
+            '腰带': 'belt', '发饰': 'hair_accessory'
+        };
+        const CATEGORY_MAP_EN_TO_CN = Object.fromEntries(
+            Object.entries(CATEGORY_MAP_CN_TO_EN).map(([cn, en]) => [en, cn])
+        );
+
+        async function importProducts(event) {
             const file = event.target.files[0];
             if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('mode', mode);
+            event.target.value = '';
 
             try {
-                showToast('正在导入，请稍候...');
+                showToast('正在解析Excel...');
+
+                // 1. Read file as ArrayBuffer
+                const buf = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = e => reject('读取文件失败');
+                    reader.readAsArrayBuffer(file);
+                });
+
+                // 2. Parse with SheetJS
+                const workbook = XLSX.read(buf, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                if (rows.length === 0) {
+                    showToast('Excel 为空', 'error');
+                    return;
+                }
+
+                // 3. Map and group by product_code
+                const codeMap = {};
+                const columnNames = Object.keys(rows[0]);
+                console.log('[Import] 列名:', columnNames);
+                console.log('[Import] 数据行数:', rows.length);
+
+                let rowCount = 0;
+                rows.forEach(row => {
+                    const productCode = String(row['商品编码'] || row['编码'] || '').trim();
+                    const name = row['商品名称'] || '';
+                    if (!name && !productCode) return; // skip empty rows
+                    rowCount++;
+
+                    // Map youzan_url: 商品链接
+                    const youzanUrl = row['商品链接'] || '';
+                    // Map youzan_id: 商品id
+                    const youzanId = String(row['商品id'] || '').trim();
+                    // Map price: 价格（元）
+                    const price = parseFloat(row['价格（元）'] || row['价格'] || 0) || 0;
+                    // Map spec_name: 商品规格
+                    const specName = String(row['商品规格'] || '').trim();
+                    // Map category from 三级类目
+                    const youzanCat = String(row['三级类目'] || '').trim();
+                    const category = CATEGORY_MAP_CN_TO_EN[youzanCat] || '';
+
+                    if (codeMap[productCode]) {
+                        // Merge multi-spec: append spec_name
+                        const existing = codeMap[productCode];
+                        if (specName && existing.spec_name.indexOf(specName) === -1) {
+                            existing.spec_name += (existing.spec_name ? ', ' : '') + specName;
+                        }
+                        // Keep non-empty values
+                        if (!existing.youzan_url && youzanUrl) existing.youzan_url = youzanUrl;
+                        if (!existing.youzan_id && youzanId) existing.youzan_id = youzanId;
+                        if (!existing.category && category) existing.category = category;
+                    } else {
+                        codeMap[productCode] = {
+                            product_code: productCode || '',
+                            name: name,
+                            price: price,
+                            youzan_url: youzanUrl,
+                            youzan_id: youzanId,
+                            spec_name: specName,
+                            category: category,
+                            is_active: true,
+                            sort_order: 0,
+                            description: ''
+                        };
+                    }
+                });
+
+                const products = Object.values(codeMap);
+                console.log('[Import] 解析完成: 原始', rowCount, '行, 合并后', products.length, '条');
+
+                // 4. Show preview
+                showImportPreview(products, file.name);
+
+            } catch (error) {
+                console.error('[Import] 解析失败:', error);
+                showToast('解析Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示导入预览弹窗
+        function showImportPreview(products, fileName) {
+            const modal = document.createElement('div');
+            modal.id = 'import-preview-modal';
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+            modal.onclick = function(e) { if (e.target === modal) closeModal('import-preview-modal'); };
+
+            const productRows = products.map((p, i) => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-3 py-2 text-xs text-gray-400 font-mono">${i + 1}</td>
+                    <td class="px-3 py-2 text-sm text-gray-800 truncate max-w-[200px]" title="${p.name}">${p.name}</td>
+                    <td class="px-3 py-2 text-sm font-mono text-gray-600">${p.product_code || '-'}</td>
+                    <td class="px-3 py-2 text-sm text-orange-600 font-medium">¥${p.price}</td>
+                    <td class="px-3 py-2 text-xs text-gray-500 truncate max-w-[150px]" title="${p.spec_name || ''}">${p.spec_name || '-'}</td>
+                    <td class="px-3 py-2 text-xs text-gray-500">${p.category ? CATEGORY_MAP_EN_TO_CN[p.category] || p.category : '-'}</td>
+                </tr>
+            `).join('');
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+                    <div class="p-6 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">导入预览</h3>
+                            <p class="text-sm text-gray-500 mt-1">文件: ${fileName} | 合并后共 ${products.length} 条商品</p>
+                        </div>
+                        <button onclick="closeModal('import-preview-modal')" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-auto p-4">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="text-xs text-gray-500 uppercase tracking-wider">
+                                    <th class="px-3 py-2 font-medium">#</th>
+                                    <th class="px-3 py-2 font-medium">商品名称</th>
+                                    <th class="px-3 py-2 font-medium">编码</th>
+                                    <th class="px-3 py-2 font-medium">价格</th>
+                                    <th class="px-3 py-2 font-medium">规格</th>
+                                    <th class="px-3 py-2 font-medium">分类</th>
+                                </tr>
+                            </thead>
+                            <tbody>${productRows}</tbody>
+                        </table>
+                        ${products.length === 0 ? '<p class="text-center text-gray-400 py-8">暂无数据</p>' : ''}
+                    </div>
+                    <div class="p-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+                        <div class="text-sm text-gray-500">
+                            <span class="text-green-600 font-medium">新增 ${products.length} 条</span>
+                            <span class="text-gray-300 mx-2">|</span>
+                            <span>已存在的编码会自动更新</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="closeModal('import-preview-modal')" class="btn-secondary px-5 py-2 rounded-lg text-sm">取消</button>
+                            <button onclick="confirmImport()" class="btn-primary px-6 py-2 rounded-lg text-sm bg-blue-500 text-white hover:bg-blue-600" id="confirm-import-btn">
+                                确认导入 ${products.length} 条
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // 保存到全局临时变量
+            window._importProducts = products;
+        }
+
+        // 确认导入
+        async function confirmImport() {
+            const products = window._importProducts;
+            if (!products || products.length === 0) {
+                showToast('没有要导入的数据', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('confirm-import-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '导入中...'; }
+
+            try {
+                showToast('正在导入，请稍候（将自动下载商品图片...）');
                 const res = await fetch(`${API_BASE}/products/import`, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ products: products })
                 });
                 const result = await res.json();
-                
+
                 if (result.code === 200) {
                     const data = result.data;
-                    
-                    // 检测到重复编码
-                    if (data.duplicates && data.duplicates.length > 0) {
-                        showDuplicateModal(data.duplicates, file);
-                        return;
-                    }
-                    
-                    let msg = `导入完成：成功 ${data.success} 条`;
-                    if (data.failed > 0) {
-                        msg += `，失败 ${data.failed} 条`;
-                        if (data.errors && data.errors.length > 0) {
-                            console.error('导入错误:', data.errors);
-                            msg += `\n详情请查看控制台`;
+                    let msg = `导入完成：${data.success} 条成功`;
+                    if (data.failed > 0) msg += `，${data.failed} 条失败`;
+                    showToast(msg, data.failed > 0 ? 'warning' : 'success');
+
+                    // 显示详细结果
+                    if (data.results && data.results.length > 0) {
+                        const failedItems = data.results.filter(r => !r.success);
+                        if (failedItems.length > 0) {
+                            console.warn('[Import] 失败详情:', failedItems.map(r => `${r.product_code}: ${r.error}`).join('\n'));
                         }
                     }
-                    showToast(msg, data.failed > 0 ? 'error' : 'success');
+
+                    closeModal('import-preview-modal');
                     loadProducts();
                 } else {
                     showToast(result.msg || '导入失败', 'error');
                 }
             } catch (error) {
-                console.error('导入失败:', error);
-                showToast('导入失败', 'error');
+                console.error('[Import] 提交失败:', error);
+                showToast('导入请求失败: ' + error.message, 'error');
             }
 
-            // 清空文件输入
-            event.target.value = '';
+            if (btn) { btn.disabled = false; btn.textContent = `确认导入 ${products.length} 条`; }
         }
 
         // 显示重复编码弹窗 - 类似Windows同名文件选择界面
@@ -4279,6 +4557,12 @@
             window.selections = null;
         }
 
+        // 通用关闭模态框
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.remove();
+        }
+
         // 以指定模式重新导入
         async function reimportWithMode(mode, fileName) {
             // 先保存文件引用，再关闭弹窗
@@ -4390,7 +4674,7 @@
                     </td>
                     <td class="px-5 py-4 font-medium">${u.used_count || 0}</td>
                     <td class="px-5 py-4">
-                        <span class="${(u.daily_quota - u.used_count) <= 0 ? 'text-red-500' : 'text-green-600'}">${Math.max(0, (u.daily_quota || 10) - (u.used_count || 0))}</span>
+                        <span class="${(u.max_count - u.used_count) <= 0 ? 'text-red-500' : 'text-green-600'}">${Math.max(0, (u.daily_quota || 10) - (u.used_count || 0))}</span>
                     </td>
                     <td class="px-5 py-4">${u.daily_quota || 10}</td>
                     <td class="px-5 py-4">${u.total_records || 0}</td>
@@ -4493,7 +4777,7 @@
                                    record.status === 'failed' ? 'tag-error' : 'tag-warning';
                 const statusText = record.status === 'completed' ? '已完成' : 
                                   record.status === 'failed' ? '失败' : '生成中';
-                const resultImage = record.result_image_url || record.generated_image_url || '';
+                const resultImage = normalizeImgUrl(record.result_image_url || record.generated_image_url || '');
                 const createdTime = new Date(record.created_at).toLocaleString('zh-CN');
                 
                 return `
@@ -4511,7 +4795,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">用户照片</div>
                                 ${record.upload_photo_url ? 
-                                    `<img src="${record.upload_photo_url}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${record.upload_photo_url}')" alt="用户照片">` :
+                                    `<img src="${normalizeImgUrl(record.upload_photo_url)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(record.upload_photo_url)}')" alt="用户照片">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">暂无</div>`
                                 }
                             </div>
@@ -4520,7 +4804,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">商品主图</div>
                                 ${record.product_image_url ? 
-                                    `<img src="${record.product_image_url}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${record.product_image_url}')" alt="商品主图">` :
+                                    `<img src="${normalizeImgUrl(record.product_image_url)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(record.product_image_url)}')" alt="商品主图">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">暂无</div>`
                                 }
                             </div>
@@ -4529,7 +4813,7 @@
                             <div class="flex-shrink-0">
                                 <div class="text-xs text-gray-500 mb-1">生成结果</div>
                                 ${resultImage ? 
-                                    `<img src="${resultImage}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${resultImage}')" alt="生成结果">` :
+                                    `<img src="${normalizeImgUrl(resultImage)}" class="w-16 h-16 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity" onclick="openLightbox('${normalizeImgUrl(resultImage)}')" alt="生成结果">` :
                                     `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs">${record.status === 'pending' ? '生成中' : '暂无'}</div>`
                                 }
                             </div>
@@ -4543,6 +4827,17 @@
                                     <div class="text-sm text-gray-600">${record.category}</div>
                                 ` : ''}
                             </div>
+                        </div>
+                        
+                        ${record.api_platform_task_id ? `
+                        <div class="mt-2 p-2 bg-purple-50 border border-purple-200 rounded flex items-center justify-between">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-xs font-semibold text-purple-700 whitespace-nowrap">Task ID:</span>
+                                <span class="text-xs font-mono text-purple-800 truncate">${record.api_platform_task_id}</span>
+                            </div>
+                            <button onclick="copyText('${record.api_platform_task_id}')" class="text-xs text-purple-500 hover:text-purple-700 underline whitespace-nowrap ml-1">复制</button>
+                        </div>
+                        ` : ''}
                         </div>
                         
                         ${record.error_message ? `
@@ -4780,6 +5075,54 @@
             }
         }
 
+        async function syncAllYouzanAppid() {
+            const appid = document.getElementById('youzan-appid').value.trim();
+            if (!appid) {
+                showToast('请先填写有赞小程序AppID', 'error');
+                return;
+            }
+            
+            // 先保存配置
+            await saveYouzanAppid(appid);
+            
+            // 再请求后端批量同步
+            const resultEl = document.getElementById('youzan-sync-result');
+            resultEl.className = 'mt-2 text-sm text-gray-500';
+            resultEl.innerHTML = '正在同步所有商品...';
+            resultEl.style.display = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/products/batch-sync-appid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jump_app_id: appid })
+                });
+                const result = await res.json();
+                if (result.code === 200) {
+                    const success = (result.data || []).filter(r => r.success).length;
+                    const fail = (result.data || []).filter(r => !r.success).length;
+                    if (fail > 0) {
+                        resultEl.className = 'mt-2 text-sm text-yellow-600';
+                        resultEl.innerHTML = `同步完成：成功 ${success} 个商品，失败 ${fail} 个`;
+                    } else {
+                        resultEl.className = 'mt-2 text-sm text-green-600';
+                        resultEl.innerHTML = `✅ 全部同步完成：${success} 个商品已更新为「已关联」`;
+                    }
+                    showToast(`全部同步完成：${success} 个成功${fail > 0 ? '，' + fail + ' 个失败' : ''}`);
+                    // 刷新商品列表
+                    loadProducts();
+                } else {
+                    resultEl.className = 'mt-2 text-sm text-red-600';
+                    resultEl.innerHTML = '同步失败：' + (result.msg || '未知错误');
+                    showToast('同步失败: ' + (result.msg || '未知错误'), 'error');
+                }
+            } catch (err) {
+                resultEl.className = 'mt-2 text-sm text-red-600';
+                resultEl.innerHTML = '请求失败：' + err.message;
+                showToast('请求失败: ' + err.message, 'error');
+            }
+        }
+
         function parseYouzanLink() {
             const youzanUrl = document.getElementById('product-youzan').value.trim();
             if (!youzanUrl) {
@@ -4819,7 +5162,6 @@
             document.getElementById('config-key').value = configKey;
             document.getElementById('config-key-display').value = configLabel + ' (' + configKey + ')';
             document.getElementById('config-description').value = config.description || '';
-            document.getElementById('config-active').checked = config.is_active !== false;
             document.getElementById('config-type').value = inputType;
             
             // 动态渲染输入框
@@ -4891,7 +5233,6 @@
         async function saveConfigEdit() {
             const configKey = document.getElementById('config-key').value;
             const configDesc = document.getElementById('config-description').value;
-            const isActive = document.getElementById('config-active').checked;
             
             let configValue = '';
             
@@ -4934,8 +5275,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         config_value: configValue,
-                        description: configDesc,
-                        is_active: isActive
+                        description: configDesc
                     })
                 });
                 
@@ -5034,10 +5374,10 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}/quota`, {
+                const response = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ max_count: quota })
+                    body: JSON.stringify({ daily_quota: quota })
                 });
                 
                 const result = await response.json();
@@ -5104,6 +5444,53 @@
             
             // 清空文件输入，允许重复选择同一文件
             input.value = '';
+        }
+
+        // ========== 回收站功能 ==========
+        var recycleBinProducts = [];
+        async function loadRecycleBin() {
+            try {
+                document.getElementById("recycle-bin-tbody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">加载中...</td></tr>';
+                var at = localStorage.getItem("at") || "rsny@1234";
+                var res = await fetch(API_BASE + "/products/recycle-bin", { headers: { "x-admin-key": at } });
+                var result = await res.json();
+                recycleBinProducts = result.data || [];
+                renderRecycleBin();
+            } catch(e) { console.error(e); }
+        }
+        function renderRecycleBin() {
+            var tbody = document.getElementById("recycle-bin-tbody");
+            if (!recycleBinProducts.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">回收站为空</td></tr>'; return; }
+            tbody.innerHTML = recycleBinProducts.map(function(p) {
+                var img = p.image_url || (p.images && p.images[0]) || "";
+                var imgTag = img ? '<img src="'+img+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<div style="width:40px;height:40px;background:#eee;border-radius:4px"></div>';
+                return '<tr>' +
+                    '<td><input type="checkbox" value="'+p.id+'" class="recycle-checkbox"></td>' +
+                    '<td>'+imgTag+'</td>' +
+                    '<td>'+(p.product_code||"-")+'</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.name||"")+'</td>' +
+                    '<td>&yen;'+(p.price||0)+'</td>' +
+                    '<td>'+(p.updated_at?new Date(p.updated_at).toLocaleDateString():"-")+'</td>' +
+                    '<td><div style="display:flex;gap:8px">' +
+                        '<button onclick="restoreProduct(\''+p.id+'\')" style="color:#10b981;border:none;background:none;cursor:pointer">恢复</button>' +
+                        '<button onclick="permanentDeleteProduct(\''+p.id+'\')" style="color:#ef4444;border:none;background:none;cursor:pointer">永久删除</button>' +
+                    '</div></td>' +
+                '</tr>';
+            }).join("");
+        }
+        function toggleSelectAllRecycle() { var c=document.getElementById("select-all-recycle").checked; document.querySelectorAll(".recycle-checkbox").forEach(function(cb){cb.checked=c}); }
+        async function restoreProduct(id) {
+            if(!confirm("确定恢复此商品吗？"))return;
+            try{var at=localStorage.getItem("at")||"rsny@1234";var r=await fetch(API_BASE+"/products/"+id+"/restore",{method:"PUT",headers:{"Content-Type":"application/json","x-admin-key":at}});var d=await r.json();if(d.code===200){showToast("已恢复");loadRecycleBin();loadProducts()}else showToast(d.msg||"恢复失败","error")}catch(e){showToast("恢复失败","error")}
+        }
+        async function permanentDeleteProduct(id) {
+            if(!confirm("永久删除后不可恢复，确定吗？"))return;
+            try{var at=localStorage.getItem("at")||"rsny@1234";var r=await fetch(API_BASE+"/products/"+id+"/permanent",{method:"DELETE",headers:{"x-admin-key":at}});var d=await r.json();if(d.code===200){showToast("已永久删除");loadRecycleBin()}else showToast(d.msg||"删除失败","error")}catch(e){showToast("删除失败","error")}
+        }
+        async function emptyRecycleBin() {
+            if(!confirm("确定清空回收站吗？不可恢复！"))return;
+            var ids=recycleBinProducts.map(function(p){return p.id});if(!ids.length)return;
+            try{var at=localStorage.getItem("at")||"rsny@1234";await fetch(API_BASE+"/products/batch-delete",{method:"POST",headers:{"Content-Type":"application/json","x-admin-key":at},body:JSON.stringify({ids:ids})});showToast("回收站已清空");loadRecycleBin()}catch(e){showToast("清空失败","error")}
         }
     </script>
 </body>
