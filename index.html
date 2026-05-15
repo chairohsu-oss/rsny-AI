@@ -3860,7 +3860,7 @@
         }
 
         async function deleteProduct(id) {
-            if (!confirm('确定要删除这个商品吗？此操作不可恢复。')) return;
+            if (!confirm('确定要删除这个商品吗？商品将移至回收站，可在回收站恢复或永久删除。')) return;
             try {
                 const res = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE' });
                 const result = await res.json();
