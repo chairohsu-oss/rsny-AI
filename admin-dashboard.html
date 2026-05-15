@@ -931,10 +931,6 @@
                     <textarea id="config-description" rows="2" class="input-field w-full" placeholder="添加配置说明"></textarea>
                 </div>
                 
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="checkbox" id="config-active" checked class="w-4 h-4 text-blue-500">
-                    <label class="text-sm text-gray-700">启用此配置</label>
-                </div>
                 
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button onclick="closeConfigModal()" class="btn-secondary px-6 py-2 rounded-lg text-sm">取消</button>
@@ -5135,7 +5131,6 @@
             document.getElementById('config-key').value = configKey;
             document.getElementById('config-key-display').value = configLabel + ' (' + configKey + ')';
             document.getElementById('config-description').value = config.description || '';
-            document.getElementById('config-active').checked = config.is_active !== false;
             document.getElementById('config-type').value = inputType;
             
             // 动态渲染输入框
@@ -5207,7 +5202,6 @@
         async function saveConfigEdit() {
             const configKey = document.getElementById('config-key').value;
             const configDesc = document.getElementById('config-description').value;
-            const isActive = document.getElementById('config-active').checked;
             
             let configValue = '';
             
@@ -5250,8 +5244,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         config_value: configValue,
-                        description: configDesc,
-                        is_active: isActive
+                        description: configDesc
                     })
                 });
                 
