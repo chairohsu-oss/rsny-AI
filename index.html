@@ -466,7 +466,10 @@
                                 <tr><td colspan="11" class="text-center py-10 text-gray-400">加载中...</td></tr>
                             </tbody>
                         </table>
-                        <div id="products-pagination" class="flex items-center justify-center px-5 py-3 border-t border-gray-100 text-sm text-gray-500"></div>
+                        <div id="products-pagination" class="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
+                            <div id="products-page-size" class="flex items-center"></div>
+                            <div id="products-pagination-buttons" class="flex items-center justify-center flex-1"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -485,6 +488,10 @@
                                 </tr></thead>
                                 <tbody id="recycle-bin-tbody"><tr><td colspan="7" style="text-align:center;color:#999;padding:40px">加载中...</td></tr></tbody>
                             </table>
+                        </div>
+                        <div id="recycle-pagination" class="flex items-center justify-between px-0 py-3 text-sm text-gray-500">
+                            <div id="recycle-page-size" class="flex items-center"></div>
+                            <div id="recycle-pagination-buttons" class="flex items-center justify-center flex-1"></div>
                         </div>
                     </div>
                 </div>
@@ -549,15 +556,10 @@
                                 <tr><td colspan="9" class="text-center py-10 text-gray-400">加载中...</td></tr>
                             </tbody>
                         </table>
-                        <div id="users-pagination" class="flex items-center justify-center px-5 py-3 border-t border-gray-100 text-sm text-gray-500"></div>
-                            <span id="users-page-info"></span>
-                            <div class="flex items-center gap-2">
-                                <button onclick="goUserPage(1)" class="px-2 py-1 rounded hover:bg-gray-100" title="首页">«</button>
-                                <button onclick="goUserPage(userPage-1)" class="px-2 py-1 rounded hover:bg-gray-100" title="上一页">‹</button>
-                                <span id="users-page-numbers" class="flex items-center gap-1"></span>
-                                <button onclick="goUserPage(userPage+1)" class="px-2 py-1 rounded hover:bg-gray-100" title="下一页">›</button>
-                                <button onclick="goUserPage(userTotalPages)" class="px-2 py-1 rounded hover:bg-gray-100" title="末页">»</button>
-                            </div>
+                        <div id="users-pagination" class="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
+                            <div id="users-page-size" class="flex items-center"></div>
+                            <div id="users-pagination-buttons" class="flex items-center justify-center flex-1"></div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -1317,11 +1319,14 @@
         
         // 分页状态
         let productPage = 1;
-        let productPageSize = 30;
+        let productPageSize = 20;
         let productTotalPages = 1;
         let userPage = 1;
-        let userPageSize = 30;
+        let userPageSize = 20;
         let userTotalPages = 1;
+        let recyclePage = 1;
+        let recyclePageSize = 20;
+        let recycleTotalPages = 1;
         
         // 排序状态
         let productSortField = '';
@@ -2752,6 +2757,24 @@
             loadUsers();
         }
 
+        function goToRecyclePage(page) {
+            recyclePage = page;
+            renderRecycleBin();
+        }
+
+        // 渲染每页条数选择器
+        function renderPageSizeSelector(containerId, currentSize, onChangeFn) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var handler = onChangeFn.replace('VAL', 'this.value');
+            container.innerHTML = '<span style="color:#6b7280;font-size:12px;margin-right:6px;">每页</span>' +
+                '<select onchange="' + handler + '" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;color:#374151;background:#fff;cursor:pointer">' +
+                [20, 40, 60, 80].map(function(s) {
+                    return '<option value="' + s + '"' + (s === currentSize ? ' selected' : '') + '>' + s + '</option>';
+                }).join('') +
+                '</select><span style="color:#6b7280;font-size:12px;margin-left:6px;">条</span>';
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return '未知';
             try {
@@ -2900,7 +2923,8 @@
                 const total = data.total || allProducts.length;
                 productTotalPages = Math.max(1, Math.ceil(total / productPageSize));
                 renderProductsTable();
-                renderPagination('products-pagination', productPage, productTotalPages, 'goToProductPage');
+                renderPagination('products-pagination-buttons', productPage, productTotalPages, 'goToProductPage');
+                renderPageSizeSelector('products-page-size', productPageSize, 'productPageSize=parseInt(VAL);productPage=1;loadProducts()');
             } catch (error) {
                 console.error('加载商品失败:', error);
                 document.getElementById('products-table').innerHTML = '<tr><td colspan="11" class="text-center py-10 text-gray-400">加载失败，请刷新重试</td></tr>';
@@ -3029,7 +3053,8 @@
             // 重置全选状态
             document.getElementById('select-all-products').checked = false;
             updateSelectedCount();
-            renderPagination('products-pagination', productPage, productTotalPages, 'goToProductPage');
+            renderPagination('products-pagination-buttons', productPage, productTotalPages, 'goToProductPage');
+            renderPageSizeSelector('products-page-size', productPageSize, 'productPageSize=parseInt(VAL);productPage=1;loadProducts()');
         }
 
         function showProductModal(id = null) {
@@ -4197,30 +4222,37 @@
             modal.onclick = function(e) { if (e.target === modal) closeModal('import-preview-modal'); };
 
             const productRows = products.map((p, i) => `
-                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                <tr class="border-b border-gray-100 hover:bg-gray-50" id="import-row-${i}">
                     <td class="px-3 py-2 text-xs text-gray-400 font-mono">${i + 1}</td>
-                    <td class="px-3 py-2 text-sm text-gray-800 truncate max-w-[200px]" title="${p.name}">${p.name}</td>
+                    <td class="px-3 py-2 text-sm text-gray-800 truncate max-w-[160px]" title="${p.name}">${p.name}</td>
                     <td class="px-3 py-2 text-sm font-mono text-gray-600">${p.product_code || '-'}</td>
                     <td class="px-3 py-2 text-sm text-orange-600 font-medium">¥${p.price}</td>
-                    <td class="px-3 py-2 text-xs text-gray-500 truncate max-w-[150px]" title="${p.spec_name || ''}">${p.spec_name || '-'}</td>
+                    <td class="px-3 py-2 text-xs text-gray-500 truncate max-w-[120px]" title="${p.spec_name || ''}">${p.spec_name || '-'}</td>
                     <td class="px-3 py-2 text-xs text-gray-500">${p.category ? CATEGORY_MAP_EN_TO_CN[p.category] || p.category : '-'}</td>
+                    <td class="px-3 py-2 text-center"><span class="import-status" data-idx="${i}" style="font-size:11px;color:#9ca3af;">⏳ 待导入</span></td>
                 </tr>
             `).join('');
 
             modal.innerHTML = `
                 <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
-                    <div class="p-6 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
+                    <div class="p-4 border-b border-gray-100 flex-shrink-0 flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">导入预览</h3>
-                            <p class="text-sm text-gray-500 mt-1">文件: ${fileName} | 合并后共 ${products.length} 条商品</p>
+                            <p class="text-sm text-gray-500 mt-1">文件: ${fileName} | 共 ${products.length} 条商品</p>
                         </div>
-                        <button onclick="closeModal('import-preview-modal')" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
+                        <div class="flex items-center gap-4">
+                            <div id="import-summary" class="text-xs text-gray-400">已完成: <span id="import-done-count" class="text-green-600 font-medium">0</span> | 失败: <span id="import-fail-count" class="text-red-500 font-medium">0</span></div>
+                            <button onclick="closeModal('import-preview-modal')" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex-1 overflow-auto p-4" id="import-preview-body">
+                        <div id="import-progress-bar" class="w-full bg-gray-200 rounded-full h-1.5 mb-3 hidden">
+                            <div id="import-progress-fill" class="bg-blue-500 h-1.5 rounded-full transition-all" style="width:0%"></div>
+                        </div>
                         <table class="w-full text-left" id="import-preview-table">
                             <thead>
                                 <tr class="text-xs text-gray-500 uppercase tracking-wider">
@@ -4230,23 +4262,11 @@
                                     <th class="px-3 py-2 font-medium">价格</th>
                                     <th class="px-3 py-2 font-medium">规格</th>
                                     <th class="px-3 py-2 font-medium">分类</th>
+                                    <th class="px-3 py-2 font-medium text-center" style="width:80px;">状态</th>
                                 </tr>
                             </thead>
-                            <tbody>${productRows}</tbody>
+                            <tbody id="import-table-tbody">${productRows}</tbody>
                         </table>
-                        ${products.length === 0 ? '<p class="text-center text-gray-400 py-8">暂无数据</p>' : ''}
-                        
-                        <!-- 导入进度区域 -->
-                        <div id="import-progress-area" class="hidden">
-                            <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
-                                <span id="progress-label">0/${products.length}</span>
-                                <span id="progress-pct">0%</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                                <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full transition-all" style="width:0%"></div>
-                            </div>
-                            <div id="progress-detail" class="text-xs text-gray-400 max-h-64 overflow-y-auto mb-3" style="line-height:1.8">准备中...</div>
-                        </div>
                     </div>
                     <div class="p-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
                         <div class="text-sm text-gray-500">
@@ -4270,46 +4290,29 @@
             window._importProducts = products;
         }
 
-        // 确认导入
-        // ===== 导入进度条（嵌入预览弹窗内） =====
-        var importProgressData = { total: 0, done: 0, failed: 0, cancel: false };
+        // 确认导入 - 逐条处理，更新每行状态
+        var importCancelFlag = false;
 
-        function showImportProgress(total) {
-            importProgressData.total = total; importProgressData.done = 0; importProgressData.failed = 0; importProgressData.cancel = false;
-            document.getElementById('import-preview-table').style.display = 'none';
-            document.getElementById('import-progress-area').classList.remove('hidden');
-            document.getElementById('confirm-import-btn').disabled = true;
-            document.getElementById('confirm-import-btn').textContent = '导入中...';
-            document.getElementById('import-cancel-btn').textContent = '取消导入';
-            document.getElementById('import-cancel-btn').onclick = function() { importProgressData.cancel = true; this.disabled = true; };
-            document.getElementById('progress-detail').innerHTML = '';
-            updateImportProgress(0, total, '准备中...');
+        function updateRowStatus(idx, text, color, bgColor) {
+            var cell = document.querySelector('.import-status[data-idx="' + idx + '"]');
+            if (cell) {
+                cell.textContent = text;
+                cell.style.color = color;
+                if (bgColor) cell.style.backgroundColor = bgColor;
+            }
+            // 滚动到当前行
+            var row = document.getElementById('import-row-' + idx);
+            if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
 
-        function updateImportProgress(done, total, msg) {
-            var pct = Math.round(done/total*100);
-            document.getElementById('progress-label').textContent = done+'/'+total;
-            document.getElementById('progress-pct').textContent = pct+'%';
-            document.getElementById('progress-bar').style.width = pct+'%';
-            var detail = document.getElementById('progress-detail');
-            var line = document.createElement('div');
-            line.textContent = (msg||'')+' ('+done+'/'+total+')';
-            detail.appendChild(line);
-            detail.scrollTop = detail.scrollHeight;
-        }
-
-        function finishImportProgress(success, failed) {
-            var finalMsg = '导入完成：'+success+' 条成功'+(failed>0?'，'+failed+' 条失败':'');
-            var detail = document.getElementById('progress-detail');
-            detail.innerHTML += '<div style="font-weight:bold;color:'+(failed>0?'#f59e0b':'#10b981')+'">'+finalMsg+'</div>';
-            document.getElementById('confirm-import-btn').textContent = '完成';
-            document.getElementById('confirm-import-btn').disabled = false;
-            document.getElementById('confirm-import-btn').onclick = function() { closeModal('import-preview-modal'); loadProducts(); };
-            document.getElementById('import-cancel-btn').textContent = '关闭';
-            document.getElementById('import-cancel-btn').onclick = function() { closeModal('import-preview-modal'); loadProducts(); };
-            document.getElementById('import-cancel-btn').disabled = false;
-            if (success > 0) showToast(finalMsg, failed > 0 ? 'warning' : 'success');
-            else showToast('导入全部失败', 'error');
+        function updateImportCounters(done, fail) {
+            var total = window._importProducts ? window._importProducts.length : 0;
+            var bar = document.getElementById('import-progress-fill');
+            var barContainer = document.getElementById('import-progress-bar');
+            if (bar && total > 0) {
+                barContainer.classList.remove('hidden');
+                bar.style.width = Math.round((done + fail) / total * 100) + '%';
+            }
         }
 
         async function confirmImport() {
@@ -4319,18 +4322,31 @@
                 return;
             }
 
-            showImportProgress(products.length);
+            importCancelFlag = false;
             var successCount = 0, failCount = 0;
             var at = localStorage.getItem('at') || 'rsny@1234';
+            var confirmBtn = document.getElementById('confirm-import-btn');
+            var cancelBtn = document.getElementById('import-cancel-btn');
+            confirmBtn.textContent = '导入中...';
+            confirmBtn.disabled = true;
+            cancelBtn.textContent = '取消导入';
+            cancelBtn.onclick = function() { importCancelFlag = true; this.disabled = true; };
+            document.getElementById('import-done-count').textContent = '0';
+            document.getElementById('import-fail-count').textContent = '0';
+
+            // 把所有待导入改为处理中状态
+            for (var i = 0; i < products.length; i++) {
+                updateRowStatus(i, '⏳ 处理中...', '#3b82f6', '#eff6ff');
+            }
 
             for (var i = 0; i < products.length; i++) {
-                if (importProgressData.cancel) {
-                    updateImportProgress(i, products.length, '⏹ 已取消');
+                if (importCancelFlag) {
+                    updateRowStatus(i - 1, '⏹ 已取消', '#6b7280', '#f3f4f6');
                     break;
                 }
                 var p = products[i];
                 var pCode = p.product_code || p.name || '第'+(i+1)+'条';
-                updateImportProgress(i, products.length, '正在处理: '+pCode);
+                updateRowStatus(i, '⏳ 处理中...', '#3b82f6', '#eff6ff');
                 try {
                     var res = await fetch(API_BASE+'/products/import', {
                         method: 'POST',
@@ -4340,18 +4356,30 @@
                     var result = await res.json();
                     if (result.code === 200 && result.data && result.data.success > 0) {
                         successCount++;
-                        updateImportProgress(i+1, products.length, '✅ '+pCode);
+                        updateRowStatus(i, '✅ 已完成', '#10b981', '#ecfdf5');
                     } else {
                         failCount++;
-                        updateImportProgress(i+1, products.length, '❌ '+pCode+' - '+(result.msg||'失败'));
+                        updateRowStatus(i, '❌ ' + (result.msg || '失败'), '#ef4444', '#fef2f2');
                     }
                 } catch(e) {
                     failCount++;
-                    updateImportProgress(i+1, products.length, '❌ '+pCode+' - '+e.message);
+                    updateRowStatus(i, '❌ ' + e.message, '#ef4444', '#fef2f2');
                 }
+                document.getElementById('import-done-count').textContent = successCount;
+                document.getElementById('import-fail-count').textContent = failCount;
+                updateImportCounters(successCount, failCount);
             }
 
-            finishImportProgress(successCount, failCount);
+            // 完成
+            var finalMsg = '导入完成：'+successCount+' 条成功'+(failCount>0?'，'+failCount+' 条失败':'');
+            confirmBtn.textContent = '完成';
+            confirmBtn.disabled = false;
+            confirmBtn.onclick = function() { closeModal('import-preview-modal'); loadProducts(); };
+            cancelBtn.textContent = '关闭';
+            cancelBtn.disabled = false;
+            cancelBtn.onclick = function() { closeModal('import-preview-modal'); loadProducts(); };
+            if (successCount > 0) showToast(finalMsg, failCount > 0 ? 'warning' : 'success');
+            else showToast('导入全部失败', 'error');
         }
 
         // 显示重复编码弹窗 - 类似Windows同名文件选择界面
@@ -4668,7 +4696,8 @@
                 userTotalPages = Math.max(1, Math.ceil(total / userPageSize));
                 allUsers = items;
                 renderUsersTable();
-                renderPagination('users-pagination', userPage, userTotalPages, 'goToUserPage');
+                renderPagination('users-pagination-buttons', userPage, userTotalPages, 'goToUserPage');
+                renderPageSizeSelector('users-page-size', userPageSize, 'userPageSize=parseInt(VAL);userPage=1;loadUsers()');
             } catch (error) {
                 console.error('加载用户失败:', error);
                 document.getElementById('users-table').innerHTML = '<tr><td colspan="9" class="text-center py-10 text-gray-400">加载失败，请刷新重试</td></tr>';
@@ -4700,7 +4729,8 @@
             const tbody = document.getElementById('users-table');
             if (!allUsers || allUsers.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-gray-400">暂无用户数据</td></tr>';
-                renderPagination('users-pagination', userPage, userTotalPages, 'goToUserPage');
+                renderPagination('users-pagination-buttons', userPage, userTotalPages, 'goToUserPage');
+                renderPageSizeSelector('users-page-size', userPageSize, 'userPageSize=parseInt(VAL);userPage=1;loadUsers()');
                 return;
             }
 
@@ -4735,7 +4765,8 @@
                     </td>
                 </tr>
             `}).join('');
-            renderPagination('users-pagination', userPage, userTotalPages, 'goToUserPage');
+            renderPagination('users-pagination-buttons', userPage, userTotalPages, 'goToUserPage');
+            renderPageSizeSelector('users-page-size', userPageSize, 'userPageSize=parseInt(VAL);userPage=1;loadUsers()');
         }
 
         function showQuotaModal(userId) {
@@ -5495,7 +5526,7 @@
             input.value = '';
         }
 
-        // ========== 回收站功能 ==========
+        // ========== 回收站功能（含客户端分页） ==========
         var recycleBinProducts = [];
         async function loadRecycleBin() {
             try {
@@ -5504,13 +5535,24 @@
                 var res = await fetch(API_BASE + "/products/recycle-bin", { headers: { "x-admin-key": at } });
                 var result = await res.json();
                 recycleBinProducts = result.data || [];
+                recyclePage = 1;
+                recycleTotalPages = Math.max(1, Math.ceil(recycleBinProducts.length / recyclePageSize));
                 renderRecycleBin();
             } catch(e) { console.error(e); }
         }
         function renderRecycleBin() {
             var tbody = document.getElementById("recycle-bin-tbody");
-            if (!recycleBinProducts.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">回收站为空</td></tr>'; return; }
-            tbody.innerHTML = recycleBinProducts.map(function(p) {
+            if (!recycleBinProducts.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">回收站为空</td></tr>';
+                renderPagination('recycle-pagination-buttons', 1, 1, 'goToRecyclePage');
+                renderPageSizeSelector('recycle-page-size', recyclePageSize, 'recyclePageSize=parseInt(VAL);recyclePage=1;recycleTotalPages=Math.max(1,Math.ceil(recycleBinProducts.length/recyclePageSize));renderRecycleBin()');
+                return;
+            }
+            // 客户端分页
+            var start = (recyclePage - 1) * recyclePageSize;
+            var end = Math.min(start + recyclePageSize, recycleBinProducts.length);
+            var pageItems = recycleBinProducts.slice(start, end);
+            tbody.innerHTML = pageItems.map(function(p) {
                 var img = p.image_url || (p.images && p.images[0]) || "";
                 var imgTag = img ? '<img src="'+img+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px">' : '<div style="width:40px;height:40px;background:#eee;border-radius:4px"></div>';
                 return '<tr>' +
@@ -5526,6 +5568,11 @@
                     '</div></td>' +
                 '</tr>';
             }).join("");
+            // 页脚信息
+            var footer = '<tr><td colspan="7" style="padding:8px 0;text-align:center;color:#6b7280;font-size:12px;">共 ' + recycleBinProducts.length + ' 条，显示第 ' + (start+1) + '-' + end + ' 条</td></tr>';
+            tbody.innerHTML += footer;
+            renderPagination('recycle-pagination-buttons', recyclePage, recycleTotalPages, 'goToRecyclePage');
+            renderPageSizeSelector('recycle-page-size', recyclePageSize, 'recyclePageSize=parseInt(VAL);recyclePage=1;recycleTotalPages=Math.max(1,Math.ceil(recycleBinProducts.length/recyclePageSize));renderRecycleBin()');
         }
         function toggleSelectAllRecycle() { var c=document.getElementById("select-all-recycle").checked; document.querySelectorAll(".recycle-checkbox").forEach(function(cb){cb.checked=c}); }
         async function restoreProduct(id) {
