@@ -4790,9 +4790,9 @@
                     </td>
                     <td class="px-5 py-4 font-medium">${u.used_count || 0}</td>
                     <td class="px-5 py-4">
-                        <span class="${(u.max_count - u.used_count) <= 0 ? 'text-red-500' : 'text-green-600'}">${Math.max(0, (u.daily_quota || 10) - (u.used_count || 0))}</span>
+                        <span class="${(u.remaining || 0) <= 0 ? 'text-red-500' : 'text-green-600'}">${u.remaining || 0}</span>
                     </td>
-                    <td class="px-5 py-4">${u.daily_quota || 10}</td>
+                    <td class="px-5 py-4">${u.daily_quota || 10}</td> || 10}</td>
                     <td class="px-5 py-4">${u.total_records || 0}</td>
                     <td class="px-5 py-4 text-gray-500 text-sm">${lastActive}</td>
                     <td class="px-5 py-4">
@@ -4811,7 +4811,7 @@
             document.getElementById('quota-modal').classList.add('active');
             document.getElementById('quota-user-id').value = userId;
             document.getElementById('quota-user-display').textContent = userId;
-            document.getElementById('quota-value').value = user?.max_count || 10;
+            document.getElementById('quota-value').value = user?.daily_quota || 10;
         }
 
         // ========== 删除用户 ==========
