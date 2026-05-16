@@ -923,6 +923,10 @@
                         <div id="api-logs-list" class="divide-y divide-gray-200">
                             <div class="text-center py-10 text-gray-400">加载中...</div>
                         </div>
+                        <div id="api-logs-pagination" class="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+                            <div id="api-logs-page-size" class="flex items-center"></div>
+                            <div id="api-logs-pagination-buttons" class="flex items-center justify-center flex-1"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1327,6 +1331,9 @@
         let recyclePage = 1;
         let recyclePageSize = 20;
         let recycleTotalPages = 1;
+        let apiLogPage = 1;
+        let apiLogPageSize = 20;
+        let apiLogTotalPages = 1;
         
         // 排序状态
         let productSortField = '';
@@ -2342,7 +2349,7 @@
 
         async function loadApiLogs() {
             const statusFilter = document.getElementById('log-status-filter')?.value || '';
-            const params = new URLSearchParams({ limit: 100 });
+            const params = new URLSearchParams({ limit: 500 });
             if (statusFilter) params.append('status', statusFilter);
 
             try {
@@ -2351,6 +2358,8 @@
 
                 if (result.code === 200) {
                     allApiLogs = result.data || [];
+                    apiLogPage = 1;
+                    apiLogTotalPages = Math.max(1, Math.ceil(allApiLogs.length / apiLogPageSize));
                     renderApiLogs(allApiLogs);
                     updateApiLogStats(allApiLogs);
                 } else {
@@ -2383,14 +2392,24 @@
         }
 
         function renderApiLogs(logs) {
+            // 更新总页数
+            apiLogTotalPages = Math.max(1, Math.ceil((logs ? logs.length : 0) / apiLogPageSize));
+            
             if (!logs || logs.length === 0) {
                 document.getElementById('api-logs-list').innerHTML = `
                     <div class="text-center py-10 text-gray-400">暂无日志记录</div>
                 `;
+                renderPagination('api-logs-pagination-buttons', 1, 1, 'goToApiLogPage');
+                renderPageSizeSelector('api-logs-page-size', apiLogPageSize, 'apiLogPageSize=parseInt(VAL);apiLogPage=1;apiLogTotalPages=Math.max(1,Math.ceil((allApiLogs||[]).length/apiLogPageSize));renderApiLogs(allApiLogs)');
                 return;
             }
 
-            const html = logs.map(log => {
+            // 客户端分页
+            var s = (apiLogPage - 1) * apiLogPageSize;
+            var e = Math.min(s + apiLogPageSize, logs.length);
+            var pageLogs = logs.slice(s, e);
+
+            var html = pageLogs.map(log => {
                 const statusBadge = getLogStatusBadge(log.status);
                 const time = new Date(log.created_at).toLocaleString('zh-CN');
                 const durationDisplay = log.duration ? `${log.duration}ms` : '-';
@@ -2427,6 +2446,9 @@
             }).join('');
 
             document.getElementById('api-logs-list').innerHTML = html;
+            // 分页
+            renderPagination('api-logs-pagination-buttons', apiLogPage, apiLogTotalPages, 'goToApiLogPage');
+            renderPageSizeSelector('api-logs-page-size', apiLogPageSize, 'apiLogPageSize=parseInt(VAL);apiLogPage=1;apiLogTotalPages=Math.max(1,Math.ceil((allApiLogs||[]).length/apiLogPageSize));renderApiLogs(allApiLogs)');
         }
 
         function getLogStatusBadge(status) {
@@ -2762,6 +2784,11 @@
             renderRecycleBin();
         }
 
+        function goToApiLogPage(page) {
+            apiLogPage = page;
+            renderApiLogs(allApiLogs);
+        }
+
         // 渲染每页条数选择器
         function renderPageSizeSelector(containerId, currentSize, onChangeFn) {
             var container = document.getElementById(containerId);
@@ -2981,6 +3008,11 @@
                 });
             }
 
+            // 客户端分页
+            var pageStart = (productPage - 1) * productPageSize;
+            var pageEnd = Math.min(pageStart + productPageSize, filtered.length);
+            var pageItems = filtered.slice(pageStart, pageEnd);
+
             const categoryNames = { earring: '耳饰', necklace: '项链', ring: '戒指', bracelet: '手链', bangle: '手镯', sunglasses: '墨镜', bag: '包袋', hat: '帽子', belt: '腰带', hair_accessory: '发饰' };
             const tbody = document.getElementById('products-table');
 
@@ -2989,7 +3021,7 @@
                 return;
             }
 
-            tbody.innerHTML = filtered.map(p => {
+            tbody.innerHTML = pageItems.map(p => {
                 // 解析图片数组
                 let images = [];
                 try {
@@ -4734,7 +4766,12 @@
                 return;
             }
 
-            tbody.innerHTML = allUsers.map(u => {
+            // 客户端分页
+            var uStart = (userPage - 1) * userPageSize;
+            var uEnd = Math.min(uStart + userPageSize, allUsers.length);
+            var pageUsers = allUsers.slice(uStart, uEnd);
+
+            tbody.innerHTML = pageUsers.map(u => {
                 const displayId = (u.wechat_id && u.user_id === u.wechat_id) ? u.user_id : u.user_id;
                 const idLabel = (u.wechat_id && u.user_id === u.wechat_id) ? '' : (u.wechat_id ? `<br><span class="text-xs text-gray-400">微信: ${u.wechat_id}</span>` : '');
                 const lastActive = u.last_active ? formatDate(u.last_active) : (u.created_at ? formatDate(u.created_at) : '-');
