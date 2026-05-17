@@ -530,13 +530,10 @@
                                             <span id="sort-users-used_count" class="text-gray-300">↕</span>
                                         </div>
                                     </th>
-                                    <th class="px-5 py-3 font-medium cursor-pointer hover:bg-gray-50 select-none" onclick="sortUsers('remaining')">
-                                        <div class="flex items-center gap-1">
-                                            剩余次数
-                                            <span id="sort-users-remaining" class="text-gray-300">↕</span>
-                                        </div>
-                                    </th>
-                                    <th class="px-5 py-3 font-medium">每日配额</th>
+                                    <th class="px-5 py-3 font-medium">每日次数</th>
+                                    <th class="px-5 py-3 font-medium">每日剩余</th>
+                                    <th class="px-5 py-3 font-medium">奖励次数</th>
+                                    <th class="px-5 py-3 font-medium">合并剩余</th>
                                     <th class="px-5 py-3 font-medium cursor-pointer hover:bg-gray-50 select-none" onclick="sortUsers('total_records')">
                                         <div class="flex items-center gap-1">
                                             累计生成
@@ -1249,8 +1246,9 @@
                     <div id="quota-user-display" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg"></div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">每日配额</label>
-                    <input type="number" id="quota-value" class="input-field w-full" value="10" min="1" max="100">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">奖励配额（额外赠送）</label>
+                    <input type="number" id="quota-value" class="input-field w-full" value="0" min="0" max="1000" placeholder="0">
+                    <p class="text-xs text-gray-400 mt-1">每日配额在系统设置中统一管理，此处调整额外奖励次数</p>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
@@ -2869,11 +2867,11 @@
                         </div>
                         <div>
                             <div class="text-sm text-gray-900">${u.user_id?.substring(0, 12) || '-'}...</div>
-                            <div class="text-xs text-gray-400">今日已用: ${u.used_count || 0}次</div>
+                            <div class="text-xs text-gray-400">每日剩余: ${u.daily_remaining || 0} | 奖励: ${u.bonus_quota || 0}</div>
                         </div>
                     </div>
-                    <span class="tag ${u.used_count >= u.daily_quota ? 'tag-error' : 'tag-success'}">
-                        ${u.used_count >= u.daily_quota ? '已用完' : '剩余' + ((u.daily_quota || 10) - (u.used_count || 0)) + '次'}
+                    <span class="tag ${u.combined_remaining <= 0 ? 'tag-error' : 'tag-success'}">
+                        ${u.combined_remaining <= 0 ? '已用完' : '剩余' + (u.combined_remaining || 0) + '次'}
                     </span>
                 </div>
             `).join('');
@@ -4760,7 +4758,7 @@
         function renderUsersTable() {
             const tbody = document.getElementById('users-table');
             if (!allUsers || allUsers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-gray-400">暂无用户数据</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-10 text-gray-400">暂无用户数据</td></tr>';
                 renderPagination('users-pagination-buttons', userPage, userTotalPages, 'goToUserPage');
                 renderPageSizeSelector('users-page-size', userPageSize, 'userPageSize=parseInt(VAL);userPage=1;loadUsers()');
                 return;
@@ -4789,10 +4787,16 @@
                         <span class="text-sm">${u.nickname || '-'}</span>
                     </td>
                     <td class="px-5 py-4 font-medium">${u.used_count || 0}</td>
-                    <td class="px-5 py-4">
-                        <span class="${(u.remaining || 0) <= 0 ? 'text-red-500' : 'text-green-600'}">${u.remaining || 0}</span>
-                    </td>
                     <td class="px-5 py-4">${u.daily_quota || 10}</td>
+                    <td class="px-5 py-4">
+                        <span class="${(u.daily_remaining || 0) <= 0 ? 'text-red-500' : 'text-green-600'}">${u.daily_remaining || 0}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="text-blue-600 font-medium">${u.bonus_quota || 0}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="${(u.combined_remaining || 0) <= 0 ? 'text-red-500' : 'text-green-600'} font-bold">${u.combined_remaining || 0}</span>
+                    </td>
                     <td class="px-5 py-4">${u.total_records || 0}</td>
                     <td class="px-5 py-4 text-gray-500 text-sm">${lastActive}</td>
                     <td class="px-5 py-4">
@@ -4811,7 +4815,7 @@
             document.getElementById('quota-modal').classList.add('active');
             document.getElementById('quota-user-id').value = userId;
             document.getElementById('quota-user-display').textContent = userId;
-            document.getElementById('quota-value').value = user?.daily_quota || 10;
+            document.getElementById('quota-value').value = user?.bonus_quota || 0;
         }
 
         // ========== 删除用户 ==========
@@ -4984,22 +4988,17 @@
         async function saveUserQuota() {
             const userId = document.getElementById('quota-user-id').value;
             const quota = parseInt(document.getElementById('quota-value').value);
-
-            try {
-                const res = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ daily_quota: quota })
-                });
-                const result = await res.json();
+            fetch(`${API_BASE}/users/${encodeURIComponent(userId)}/quota`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bonus_quota: quota })
+            }).then(r => r.json()).then(result => {
                 if (result.code === 200) {
-                    showToast('配额已更新');
+                    showToast('奖励配额已更新');
                     closeQuotaModal();
                     loadUsers();
-                }
-            } catch (error) {
-                showToast('操作失败', 'error');
-            }
+                } else { showToast(result.msg || '操作失败', 'error'); }
+            }).catch(() => showToast('操作失败', 'error'));
         }
 
         // ===== 页面装修 =====
