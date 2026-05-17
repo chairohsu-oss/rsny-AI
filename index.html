@@ -2937,7 +2937,8 @@
                 const category = document.getElementById('filter-category').value;
                 const status = document.getElementById('filter-status').value;
                 const search = document.getElementById('search-product').value.trim();
-                const params = new URLSearchParams({ page: productPage, pageSize: productPageSize });
+                // 传大的 pageSize 让后端返回全量数据，前端自己做分页（避免双重分页）
+                const params = new URLSearchParams({ pageSize: 9999 });
                 if (category) params.set('category', category);
                 if (status) params.set('status', status);
                 if (search) params.set('search', search);
