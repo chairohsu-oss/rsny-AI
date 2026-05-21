@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  
+  <!-- 核心Viewport设置 -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  
+  <!-- iOS PWA 核心设置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="天霸私厨">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="format-detection" content="telephone=no,address=no,email=no">
+  
+  <!-- 主题色 -->
+  <meta name="theme-color" content="#F97316">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- iOS 图标 -->
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-128.png">
+  
+  <title>天霸私厨</title>
+  <script>!function(n){function f(){var e=n.document.documentElement,r=e.getBoundingClientRect(),width=r.width,height=r.height,arr=[width,height].filter(function(value){return Boolean(value)}),w=Math.min.apply(Math,arr),x=40*w/750;e.style.fontSize=x>=40?"40px":x<=20?"20px":x+"px"}; n.addEventListener("resize",(function(){f()})),f()}(window);</script>
+  
+  
+  <style>
+    /* 基础重置 */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+       -ms-user-select: none;
+           user-select: none;
+    }
+    
+    taro-input-core, taro-textarea-core {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+       -ms-user-select: text;
+           user-select: text;
+    }
+    
+    /* 全局样式 - 白色背景，禁止页面级滚动 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      -ms-scroll-chaining: none;
+          overscroll-behavior: none;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+    
+    #app {
+      background-color: #ffffff;
+    }
+    
+    /* 强制忽略iOS安全区域 - 让固定底部元素贴底显示 */
+    html, body, #app, .taro_router, .taro_page, .taro-tabbar__container, .taro-tabbar__panel {
+      padding-bottom: 0 !important;
+    }
+    
+    /* 加载动画 */
+    @-webkit-keyframes __app-loading-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes __app-loading-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .__app-loading {
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+          -ms-flex-direction: column;
+              flex-direction: column;
+      -webkit-align-items: center;
+          -ms-flex-align: center;
+              align-items: center;
+      -webkit-justify-content: center;
+          -ms-flex-pack: center;
+              justify-content: center;
+      height: 100vh;
+      gap: 0.4rem;
+    }
+    
+    .__app-loading-icon {
+      width: 2rem;
+      height: 2rem;
+      background: white;
+      border-radius: 0.5rem;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+          -ms-flex-align: center;
+              align-items: center;
+      -webkit-justify-content: center;
+          -ms-flex-pack: center;
+              justify-content: center;
+      -webkit-box-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.15);
+              box-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.15);
+      -webkit-animation: __app-loading-pulse 1.5s ease-in-out infinite;
+              animation: __app-loading-pulse 1.5s ease-in-out infinite;
+    }
+    
+    .__app-loading-text {
+      color: #999;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 0.4rem;
+    }
+  </style>
+  <script type="module" crossorigin src="/js/index.4c1a971f.js"></script>
+  <link rel="modulepreload" crossorigin href="/js/vendors.050fbc64.js">
+  <link rel="modulepreload" crossorigin href="/js/common.f78be903.js">
+  <link rel="stylesheet" href="/css/vendors.8886af03.css">
+  <link rel="stylesheet" href="/css/common.0d0570d5.css">
+  <link rel="stylesheet" href="/css/index.73d4a69d.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="__app-loading">
+      <div class="__app-loading-icon">
+        <img src="/loading-logo.png" alt="天霸私厨" style="width: 60px; height: 60px; object-fit: contain;">
+      </div>
+      <span class="__app-loading-text">天霸私厨</span>
+    </div>
+  </div>
+  
+  <script>
+    // 禁用双击缩放
+    document.addEventListener('touchstart', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    
+    var lastTouchEnd = 0;
+    document.addEventListener('touchend', function(e) {
+      var now = Date.now();
+      if (now - lastTouchEnd <= 300) e.preventDefault();
+      lastTouchEnd = now;
+    }, false);
+    
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault();
+    });
+  </script>
+</body>
+
+</html>
